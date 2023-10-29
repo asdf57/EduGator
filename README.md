@@ -16,3 +16,4 @@ To login to the Edugators database locally, run the following after starting up 
 ```bash
 psql -h localhost -U postgres -d edugators -p 5433 -W
 ```
+When prompted for a password, please enter `password`.
