@@ -1,64 +1,72 @@
-CREATE DATABASE edugators;
+---CREATE DATABASE EduGator;
 
-\c edugators;
+CREATE TYPE Academic_Year AS ENUM ('FRESHMAN', 'SOPHOMORE', 'JUNIOR', 'SENIOR');
 
-CREATE TABLE Teacher (
-    teacherId SERIAL PRIMARY KEY,
-    name VARCHAR(128)
-);
+CREATE TABLE Students (
+        Student_ID SERIAL PRIMARY KEY,
+        Student_Name VARCHAR(255) NOT NULL,
+        Email VARCHAR(255) UNIQUE NOT NULL,
+        Academic_Year Academic_Year NOT NULL,
+        Expected_Graduation DATE,
+        Password_Hash VARCHAR(255) NOT NULL
+        );
+        
+CREATE TABLE Teachers (
+        Teacher_ID SERIAL PRIMARY KEY,
+        Teacher_Name VARCHAR(255) NOT NULL,
+        Email VARCHAR(255) UNIQUE NOT NULL,
+        Password_Hash VARCHAR(60) NOT NULL
+        );
+    
+CREATE TABLE Courses (
+        Course_ID SERIAL PRIMARY KEY,
+        Course_Name VARCHAR(255) NOT NULL,
+        Teacher_ID INT REFERENCES Teachers(Teacher_ID),
+        Description VARCHAR(255),
+        Course_Start DATE,
+        Course_End DATE
+        );
+        
+CREATE TABLE Course_Prerequisites (
+        Course_ID INT REFERENCES Courses(Course_ID),
+        Prerequisite_ID INT REFERENCES Courses(Course_ID),
+        PRIMARY KEY (Course_ID, Prerequisite_ID)
+        );
+        
+CREATE TABLE Course_Tabs (
+        Tab_ID SERIAL PRIMARY KEY,
+        Name VARCHAR(255) NOT NULL,
+        Course_ID INT REFERENCES Courses(Course_ID),
+        Visibility BOOLEAN
+        );
 
-CREATE TABLE Course (
-    courseId SERIAL PRIMARY KEY
-);
+CREATE TABLE Course_Modules (
+        Module_ID SERIAL PRIMARY KEY,
+        Tab_ID INT REFERENCES Course_Tabs(Tab_ID),
+        Title TEXT,
+        Description TEXT,
+        Content JSONB,
+        Visibility BOOLEAN
+        );
 
--- Junction table for teacher-course relationship
-CREATE TABLE TeacherCourse (
-    teacherId INTEGER REFERENCES Teacher(teacherId),
-    courseId INTEGER REFERENCES Course(courseId),
-    PRIMARY KEY (teacherId, courseId)
-);
+CREATE TABLE Assignments (
+        Assignment_ID SERIAL PRIMARY KEY,
+        TabID INT REFERENCES Course_Tabs(Tab_ID),
+        Title TEXT,
+        Description TEXT,
+        Due_Date DATE,
+        Total_Points INT,
+        Visibility BOOLEAN
+        );
 
-CREATE TABLE Student (
-    studentId SERIAL PRIMARY KEY,
-    name VARCHAR(128),
-    level VARCHAR(128),
-    expectedGraduationDate DATE
-);
-
--- Junction table for student-course relationship
-CREATE TABLE StudentCourse (
-    studentId INTEGER REFERENCES Student(studentId),
-    courseId INTEGER REFERENCES Course(courseId),
-    PRIMARY KEY (studentId, courseId)
-);
-
-CREATE TABLE ContentArea (
-    contentAreaId SERIAL PRIMARY KEY,
-    courseId INTEGER REFERENCES Course(courseId),
-    name VARCHAR(255),
-    order_index INTEGER
-);
-
-CREATE TABLE Content (
-    contentId SERIAL PRIMARY KEY,
-    contentAreaId INTEGER REFERENCES ContentArea(contentAreaId),
-    title TEXT,
-    description TEXT,
-    order_index INTEGER,
-    file_path TEXT
-);
-
-CREATE TABLE Assignment (
-    assignmentId SERIAL PRIMARY KEY,
-    courseId INTEGER REFERENCES Course(courseId),
-    title TEXT,
-    description TEXT
-);
-
-CREATE TABLE Submission (
-    submissionId SERIAL PRIMARY KEY,
-    studentId INTEGER REFERENCES Student(studentId),
-    assignmentId INTEGER REFERENCES Assignment(assignmentId),
-    file_path TEXT,
-    submission_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE Submissions (
+        Submission_ID SERIAL PRIMARY KEY,
+        Assignment_ID INT REFERENCES Assignments(Assignment_ID),
+        Student_ID INT REFERENCES Students(Student_ID),
+        Submission JSONB
+        );
+    
+CREATE TABLE Student_Courses (
+        Student_ID INT REFERENCES Students(Student_ID),
+        Course_ID INT REFERENCES Courses(Course_ID)
+        );
