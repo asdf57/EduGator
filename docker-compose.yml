@@ -10,7 +10,7 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
-      - DATABASE_URL=postgres://postgres:password@db:5432/postgres
+      - DATABASE_URL=postgres://postgres:password@edugators:5433/postgres
     depends_on:
       - db
 
@@ -20,11 +20,10 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./src/backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
 volumes:
   pgdata:
