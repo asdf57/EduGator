@@ -8,19 +8,16 @@ services:
     container_name: backend
     ports:
       - "3000:3000"
-    environment:
-      - PORT=3000
-      - DATABASE_URL=postgres://postgres:password@edugators:5433/postgres
+    env_file:
+      - .env
     depends_on:
       - db
 
   db:
     image: postgres:13
     container_name: edugators-db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: edugators
+    env_file:
+      - .env
     ports:
       - "5433:5432"
     volumes:
