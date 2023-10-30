@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    container_name: backend
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    container_name: edugators-db
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./src/backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+volumes:
+  pgdata:

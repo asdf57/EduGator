@@ -1,0 +1,25 @@
+{
+  "name": "edugator",
+  "version": "1.0.0",
+  "description": "A simple learning management system",
+  "main": "index.js",
+  "scripts": {
+    "start": "cd src/backend && node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asdf57/EduGator.git"
+  },
+  "author": "EduGator team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/asdf57/EduGator/issues"
+  },
+  "homepage": "https://github.com/asdf57/EduGator#readme",
+  "dependencies": {
+    "express": "^4.18.2",
+    "npm": "^10.2.1",
+    "start": "^5.1.0"
+  }
+}
