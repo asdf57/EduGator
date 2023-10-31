@@ -10,14 +10,21 @@ CREATE TABLE Students (
         Expected_Graduation DATE,
         Password_Hash VARCHAR(255) NOT NULL
         );
-        
+
+CREATE TABLE Admin (
+        Admin_ID SERIAL PRIMARY KEY,
+        Admin_Name VARCHAR(255) NOT NULL,
+        Email VARCHAR(255) UNIQUE NOT NULL,
+        Password_Hash VARCHAR(255) NOT NULL
+        );
+
 CREATE TABLE Teachers (
         Teacher_ID SERIAL PRIMARY KEY,
         Teacher_Name VARCHAR(255) NOT NULL,
         Email VARCHAR(255) UNIQUE NOT NULL,
-        Password_Hash VARCHAR(60) NOT NULL
+        Password_Hash VARCHAR(255) NOT NULL
         );
-    
+
 CREATE TABLE Courses (
         Course_ID SERIAL PRIMARY KEY,
         Course_Name VARCHAR(255) NOT NULL,
@@ -26,13 +33,13 @@ CREATE TABLE Courses (
         Course_Start DATE,
         Course_End DATE
         );
-        
+
 CREATE TABLE Course_Prerequisites (
         Course_ID INT REFERENCES Courses(Course_ID),
         Prerequisite_ID INT REFERENCES Courses(Course_ID),
         PRIMARY KEY (Course_ID, Prerequisite_ID)
         );
-        
+
 CREATE TABLE Course_Tabs (
         Tab_ID SERIAL PRIMARY KEY,
         Name VARCHAR(255) NOT NULL,
@@ -65,7 +72,7 @@ CREATE TABLE Submissions (
         Student_ID INT REFERENCES Students(Student_ID),
         Submission JSONB
         );
-    
+
 CREATE TABLE Student_Courses (
         Student_ID INT REFERENCES Students(Student_ID),
         Course_ID INT REFERENCES Courses(Course_ID)
