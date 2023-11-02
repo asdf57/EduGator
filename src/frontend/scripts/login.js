@@ -12,16 +12,15 @@ loginButton.addEventListener("click", () => {
 		},
 		body: JSON.stringify({username: usernameInput.value, password: passwordInput.value, role: roleSelect.value})
 	}).then(response => {
-		console.log("Sending: ", usernameInput.value, passwordInput.value, roleSelect.value);
-		if (response.status === 200) {
-			if(response.redirected) {
-				window.location.href = response.url;
-			}
-			result.textContent = "";
-			
-		} else {
-			result.textContent = "Login failed";
-		}
+		if (response.status === 200 && response.redirected)
+			window.location.href = response.url;
+		else
+			return response.json();
+	}).then(body => {
+		if (!body)
+			return;
+
+		 resultDiv.textContent = body.error;
 	});
 });
 
