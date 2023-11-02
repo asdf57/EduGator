@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/asdf57/EduGator#readme",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "npm": "^10.2.1",
