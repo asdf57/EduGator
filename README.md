@@ -30,6 +30,6 @@ into your keyboard.
 ## Database login
 To login to the Edugators database locally, run the following after starting up the docker-compose system:
 ```bash
-psql -h localhost -U postgres -d edugators -p 5433 -W
+psql -h localhost -U postgres -d edugators
 ```
 When prompted for a password, please enter `password`.
