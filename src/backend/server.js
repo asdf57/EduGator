@@ -31,11 +31,8 @@ app.use(express.json());
 app.use("/scripts", express.static(path.join(__dirname, "..", "frontend", "scripts")));
 app.use("/dist", express.static(path.join(__dirname, "..", "frontend", "dist")));
 app.use("/assets", express.static(path.join(__dirname, "..", "frontend", "assets")));
-app.use(express.static(path.join(__dirname, "..", "frontend", "public")));
+// app.use(express.static(path.join(__dirname, "..", "frontend", "public")));
 app.use((req, res, next) => {
-  console.log('Global middleware session:', req.session);
-  console.log("Authed: ", req.session.isAuthenticated);
-
   if (req.session.isAuthenticated)
     return next();
   
@@ -43,19 +40,22 @@ app.use((req, res, next) => {
     return next();
 
   console.log("Not authed!");
-  res.redirect('/login.html');
+  res.redirect('/login');
 });
-
 app.use((err, req, res, next) => {
   return res.status(400).end();
 });
 
-function getUserType(req) {
-  if (req.session.role == "student")
+function getHtmlPath(filename) {
+  return path.join(__dirname, "..", "frontend", "public", filename);
+}
+
+function getUserType(role) {
+  if (role === "student")
     return LoginType.Student;
-  else if (req.session.role == "teacher")
+  else if (role === "teacher")
     return LoginType.Teacher;
-  else if (req.session.role == "admin")
+  else if (role === "admin")
     return LoginType.Admin;
 
   return LoginType.Unknown;
@@ -63,17 +63,28 @@ function getUserType(req) {
 
 app.get("/home", (req, res) => {
   const userType = req.session.role;
+  if (req.session.isAuthenticated) {
+    return res.sendFile(getHtmlPath("home.html"));
+  } else {
+    return res.redirect('/login');
+  }
+});
+
+app.get("/login", async (req, res) => {
+  if (req.session.isAuthenticated) {
+    return res.redirect('/home');
+  } else {
+    return res.sendFile(getHtmlPath("login.html"));
+  }
 });
 
 app.post("/login", async (req, res) => {
   const { username, password, role } = req.body;
 
-  console.log("Received: ", req.body, req.headers);
-
   if (req.session.isAuthenticated || username === "test") {
     req.session.isAuthenticated = true;
-    req.session.role = role;
-    return res.redirect('/home.html');
+    req.session.role = getUserType(role);
+    return res.redirect('/home');
   } else {
     return res.status(401).json({"error": "Unauthorized"});
   }
