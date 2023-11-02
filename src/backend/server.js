@@ -2,9 +2,10 @@ const express = require("express");
 const pg = require("pg");
 const path = require("path");
 const session = require("express-session")
-
+const bcrypt = require("bcrypt")
 
 const app = express();
+const SALT_ROUNDS = 10;
 const SESSION_DURATION = 60000;
 const HOSTNAME = "0.0.0.0";
 const PORT = process.env.PORT;
@@ -12,14 +13,19 @@ const ROLES = ["admin", "teacher", "student"];
 const LoginType = {
 	Student: "student",
 	Teacher: "teacher",
-	Admin: "admin",
-  Unknown: "unknown"
+	Admin: "admin"
 };
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL
+  user: process.env.POSTGRES_USER,
+	host: process.env.POSTGRES_HOST,
+	database: process.env.POSTGRES_DB,
+	password: process.env.POSTGRES_PASSWORD,
+	port: process.env.POSTGRES_PORT
 });
 
-pool.connect();
+pool.connect().then(function () {
+  console.log(`Connected to database!`);
+});
 
 app.use(session({
   secret: process.env.SIGNING_KEY,
@@ -31,12 +37,11 @@ app.use(express.json());
 app.use("/scripts", express.static(path.join(__dirname, "..", "frontend", "scripts")));
 app.use("/dist", express.static(path.join(__dirname, "..", "frontend", "dist")));
 app.use("/assets", express.static(path.join(__dirname, "..", "frontend", "assets")));
-// app.use(express.static(path.join(__dirname, "..", "frontend", "public")));
 app.use((req, res, next) => {
   if (req.session.isAuthenticated)
     return next();
   
-  if (req.path === '/login' || req.path === '/login.html')
+  if (req.path === '/login')
     return next();
 
   console.log("Not authed!");
@@ -55,19 +60,31 @@ function getUserType(role) {
     return LoginType.Student;
   else if (role === "teacher")
     return LoginType.Teacher;
-  else if (role === "admin")
-    return LoginType.Admin;
 
-  return LoginType.Unknown;
+  return LoginType.Admin;
 }
 
+//Harcode admin user for time being
+function generateTestUsers() {
+  const adminUsername = "root";
+
+  bcrypt.hash("hunter2", SALT_ROUNDS, async function(err, hashedPassword) {
+    const userQuery = await pool.query(`SELECT password_hash FROM admin WHERE username = $1`, [adminUsername]);
+    if (userQuery.rows.length >= 1)
+      return;
+
+    if (err) {
+      console.error('Hashing failed', err);
+    } else {
+      await pool.query('INSERT INTO admin (username, actualname, password_hash) VALUES ($1, $2, $3)', [adminUsername, "Hunter2", hashedPassword]);
+    }
+  });
+}
+
+generateTestUsers();
+
 app.get("/home", (req, res) => {
-  const userType = req.session.role;
-  if (req.session.isAuthenticated) {
-    return res.sendFile(getHtmlPath("home.html"));
-  } else {
-    return res.redirect('/login');
-  }
+  return res.sendFile(getHtmlPath("home.html"));
 });
 
 app.get("/login", async (req, res) => {
@@ -78,16 +95,101 @@ app.get("/login", async (req, res) => {
   }
 });
 
+app.get("/signup", async (req, res) => {
+  const role = req.session.role;
+  console.log(role);
+
+  if (role === LoginType.Admin) {
+    return res.sendFile(getHtmlPath("signup.html"));
+  } else {
+    return res.sendFile(getHtmlPath("login.html"));
+  }
+});
+
+app.post("/signup", async (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+  const actualName = req.body.actualName;
+  const academicYear = req.body.academicYear;
+  const graduationDate = req.body.graduationDate;
+  const userRole = req.body.role;
+  const sessionRole = req.session.role;
+
+  if (sessionRole !== LoginType.Admin)
+    return res.status(401).json({error: "Insufficient permissions to create users!"});
+
+  if (!username || !password || !userRole)
+    return res.sendStatus(401);
+
+  if (!ROLES.includes(userRole))
+    return res.status(401).json({"error": "Invalid role was provided!"});
+
+  if (!typeof username == "string" || !typeof password == "string")
+    return res.status(401).json({"error": "Username or password is not a string!"});
+
+  if (username.length < 1 || username.length > 25)
+    return res.status(401).json({"error": `Username has invalid length ${username.length}: Must be between 1 and 25 characters`});
+
+  if (password.length < 5 || password.length > 36)
+    return res.status(401).json({"error": `Password has invalid length ${password.length}: Must be between 5 and 36 characters`});
+
+  const userQuery = await pool.query(`SELECT password_hash FROM ${userRole} WHERE username = $1`, [username]);
+  if (userQuery.rows.length >= 1)
+    return res.status(401).json({error: "An error occurred"});
+
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  if (!hashedPassword)
+    return res.status(401).json({error: "An error occurred"});
+
+  let insertQuery;
+  if (getUserType(userRole) === LoginType.Student) {
+    insertQuery = await pool.query(
+      `INSERT INTO student (username, actualname, academic_year, expected_graduation, password_hash) VALUES ($1,$2,$3,$4,$5)`,
+      [username, actualName, academicYear, graduationDate, hashedPassword]
+    );
+  } else if (getUserType(userRole) === LoginType.Teacher) {
+    insertQuery = await pool.query(
+      `INSERT INTO teacher (username, actualname, password_hash) VALUES ($1,$2,$3)`,
+      [username, actualName, hashedPassword]
+    );
+  } else {
+    insertQuery = await pool.query(
+      `INSERT INTO admin (username, actualname, password_hash) VALUES ($1,$2,$3)`,
+      [username, actualName, hashedPassword]
+    );
+  }
+
+  if (!insertQuery)
+    return res.status(401).json({error: "An error occurred while creating the user!"});
+
+});
+
 app.post("/login", async (req, res) => {
   const { username, password, role } = req.body;
 
-  if (req.session.isAuthenticated || username === "test") {
-    req.session.isAuthenticated = true;
-    req.session.role = getUserType(role);
-    return res.redirect('/home');
-  } else {
-    return res.status(401).json({"error": "Unauthorized"});
+  console.log(role);
+  if (!ROLES.includes(role)) {
+    return res.status(401).json({"error": "Invalid role was provided!"});
   }
+
+  const userType = getUserType(role);
+  const queryRes = await pool.query(`SELECT password_hash FROM ${role} WHERE username = $1`, [username]);
+
+  if (queryRes.rows.length === 0) {
+    return res.status(401).json({"error": "Invalid username/password"});
+  }
+
+  const hashedPassword = queryRes.rows[0].password_hash;
+
+  const matchRes = await bcrypt.compare(password, hashedPassword);
+  if (!matchRes){
+    return res.status(401).json({error: "Unauthorized"});
+  }
+
+  // Verified correct password submitted, proceed to session auth
+  req.session.isAuthenticated = true;
+  req.session.role = userType;
+  return res.redirect('/home');
 });
 
 app.listen(PORT, HOSTNAME, () => {
