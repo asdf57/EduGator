@@ -1,79 +1,77 @@
----CREATE DATABASE EduGator;
+CREATE TYPE academic_year AS ENUM ('freshman', 'sophomore', 'junior', 'senior');
 
-CREATE TYPE Academic_Year AS ENUM ('FRESHMAN', 'SOPHOMORE', 'JUNIOR', 'SENIOR');
+CREATE TABLE student (
+        student_id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        actualname VARCHAR(255) NOT NULL,
+        academic_year academic_year NOT NULL,
+        expected_graduation DATE,
+        password_hash VARCHAR(255) NOT NULL
+);
 
-CREATE TABLE Students (
-        Student_ID SERIAL PRIMARY KEY,
-        Student_Name VARCHAR(255) NOT NULL,
-        Email VARCHAR(255) UNIQUE NOT NULL,
-        Academic_Year Academic_Year NOT NULL,
-        Expected_Graduation DATE,
-        Password_Hash VARCHAR(255) NOT NULL
-        );
+CREATE TABLE admin (
+        admin_id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        actualname VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL
+);
 
-CREATE TABLE Admin (
-        Admin_ID SERIAL PRIMARY KEY,
-        Admin_Name VARCHAR(255) NOT NULL,
-        Email VARCHAR(255) UNIQUE NOT NULL,
-        Password_Hash VARCHAR(255) NOT NULL
-        );
+CREATE TABLE teacher (
+        teacher_id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        actualname VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL
+);
 
-CREATE TABLE Teachers (
-        Teacher_ID SERIAL PRIMARY KEY,
-        Teacher_Name VARCHAR(255) NOT NULL,
-        Email VARCHAR(255) UNIQUE NOT NULL,
-        Password_Hash VARCHAR(255) NOT NULL
-        );
+CREATE TABLE courses (
+        course_id SERIAL PRIMARY KEY,
+        course_name VARCHAR(255) NOT NULL,
+        teacher_id INT REFERENCES teacher(teacher_id),
+        description VARCHAR(255),
+        course_start DATE,
+        course_end DATE
+);
 
-CREATE TABLE Courses (
-        Course_ID SERIAL PRIMARY KEY,
-        Course_Name VARCHAR(255) NOT NULL,
-        Teacher_ID INT REFERENCES Teachers(Teacher_ID),
-        Description VARCHAR(255),
-        Course_Start DATE,
-        Course_End DATE
-        );
+CREATE TABLE course_prerequisites (
+        course_id INT REFERENCES courses(course_id),
+        prerequisite_id INT REFERENCES courses(course_id),
+        PRIMARY KEY (course_id, prerequisite_id)
+);
 
-CREATE TABLE Course_Prerequisites (
-        Course_ID INT REFERENCES Courses(Course_ID),
-        Prerequisite_ID INT REFERENCES Courses(Course_ID),
-        PRIMARY KEY (Course_ID, Prerequisite_ID)
-        );
+CREATE TABLE course_tabs (
+        tab_id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        course_id INT REFERENCES courses(course_id),
+        visibility BOOLEAN
+);
 
-CREATE TABLE Course_Tabs (
-        Tab_ID SERIAL PRIMARY KEY,
-        Name VARCHAR(255) NOT NULL,
-        Course_ID INT REFERENCES Courses(Course_ID),
-        Visibility BOOLEAN
-        );
+CREATE TABLE course_modules (
+        module_id SERIAL PRIMARY KEY,
+        tab_id INT REFERENCES course_tabs(tab_id),
+        title TEXT,
+        description TEXT,
+        content JSONB,
+        visibility BOOLEAN
+);
 
-CREATE TABLE Course_Modules (
-        Module_ID SERIAL PRIMARY KEY,
-        Tab_ID INT REFERENCES Course_Tabs(Tab_ID),
-        Title TEXT,
-        Description TEXT,
-        Content JSONB,
-        Visibility BOOLEAN
-        );
+CREATE TABLE assignments (
+        assignment_id SERIAL PRIMARY KEY,
+        tabid INT REFERENCES course_tabs(tab_id),
+        title TEXT,
+        description TEXT,
+        due_date DATE,
+        total_points INT,
+        visibility BOOLEAN
+);
 
-CREATE TABLE Assignments (
-        Assignment_ID SERIAL PRIMARY KEY,
-        TabID INT REFERENCES Course_Tabs(Tab_ID),
-        Title TEXT,
-        Description TEXT,
-        Due_Date DATE,
-        Total_Points INT,
-        Visibility BOOLEAN
-        );
+CREATE TABLE submissions (
+        submission_id SERIAL PRIMARY KEY,
+        assignment_id INT REFERENCES assignments(assignment_id),
+        student_id INT REFERENCES student(student_id),
+        submission JSONB
+);
 
-CREATE TABLE Submissions (
-        Submission_ID SERIAL PRIMARY KEY,
-        Assignment_ID INT REFERENCES Assignments(Assignment_ID),
-        Student_ID INT REFERENCES Students(Student_ID),
-        Submission JSONB
-        );
-
-CREATE TABLE Student_Courses (
-        Student_ID INT REFERENCES Students(Student_ID),
-        Course_ID INT REFERENCES Courses(Course_ID)
-        );
+CREATE TABLE student_courses (
+        student_id INT REFERENCES student(student_id),
+        course_id INT REFERENCES courses(course_id)
+);
