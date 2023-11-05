@@ -8,11 +8,7 @@ const passwordInput = document.getElementById("password");
 const resultDiv = document.getElementById("result");
 
 signupButton.addEventListener("click", () => {
-    let signupRequest = {};
-
-    if (roleSelect.value === 'Student') {
-        signupRequest = {}
-    }
+    resultDiv.textContent = "";
 
     fetch("/signup", {
 		method: "POST",
@@ -28,17 +24,15 @@ signupButton.addEventListener("click", () => {
             role: roleSelect.value
         })
 	}).then(response => {
-        if (response.status == 200)
-            return;
-
-        return response.json();
+        if (response.status === 200 && response.redirected)
+			window.location.href = response.url;
+		else
+			return response.json();
 	}).then(body => {
-        if (!body) {
-			resultDiv.textContent = body.error;
-			return;
-		}
-
-		resultDiv.textContent = body.error;
+        if (body.hasOwnProperty("error"))
+		    resultDiv.textContent = body.error;
+    }).catch(error => {
+        console.log(error);
     });
 });
 
