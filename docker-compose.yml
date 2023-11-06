@@ -5,23 +5,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.node
-    container_name: backend
+    container_name: edugators-server
     ports:
       - "3000:3000"
     env_file:
       - .env
     depends_on:
-      - db
+      - edugators-db
 
-  db:
+  edugators-db:
     image: postgres:13
     container_name: edugators-db
     env_file:
       - .env
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - ./src/backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-
-volumes:
-  pgdata:

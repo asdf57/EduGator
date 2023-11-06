@@ -1,27 +1,26 @@
-const SALT_ROUNDS = 10;
+const loginButton = document.getElementById("login");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+const roleSelect = document.getElementById("role");
+const resultDiv = document.getElementById("result");
 
-let usernameInput = document.getElementById("username");
-let passwordInput = document.getElementById("password");
-let result = document.getElementById("result");
-
-document.getElementById("login").addEventListener("click", () => {
-	fetch("/signin", {
+loginButton.addEventListener("click", () => {
+	fetch("/login", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json"
 		},
-		body: JSON.stringify({
-			username: usernameInput.value,
-			plaintextPassword: passwordInput.value,
-		})
-	}).then((response) => {
-		if (response.status === 200) {
-			result.textContent = "Login successful";
-			result.classList.remove("error");
-		} else {
-			result.textContent = "Login failed";
-			result.classList.add("error");
-		}
+		body: JSON.stringify({username: usernameInput.value, password: passwordInput.value, role: roleSelect.value})
+	}).then(response => {
+		if (response.status === 200 && response.redirected)
+			window.location.href = response.url;
+		else
+			return response.json();
+	}).then(body => {
+		if (!body)
+			return;
+
+		 resultDiv.textContent = body.error;
 	});
 });
 
