@@ -27,6 +27,21 @@ Ctrl+C
 ```
 into your keyboard.
 
+### Having Issues? Try This!
+If a change has broken your EduGators installation, it's best to recreate it from scratch. To do that, follow these steps:
+1. Delete your existing EduGators installation
+```Bash
+docker-compose rm -f
+```
+2. Rebuild it
+```bash
+docker-compose -f docker-compose.yml build
+```
+3. Rerun it
+```bash
+docker-compose -f docker-compose.yml up
+```
+
 ## Database login
 To login to the Edugators database locally, run the following after starting up the docker-compose system:
 ```bash
