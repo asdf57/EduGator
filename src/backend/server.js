@@ -3,6 +3,7 @@ const pg = require("pg");
 const path = require("path");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
+const ejs = require("ejs");
 
 const { generateHomePage } = require("./routes/home");
 const { LoginType, getUserType } = require('./utils/roles');
@@ -13,6 +14,8 @@ const SESSION_DURATION = 1200000; // 20 minutes
 const HOSTNAME = "0.0.0.0";
 const PORT = process.env.PORT;
 const ROLES = ["admin", "teacher", "student"];
+
+app.set("view engine", "ejs");
 
 const pool = new pg.Pool({
   user: process.env.POSTGRES_USER,
@@ -46,6 +49,7 @@ app.use((req, res, next) => {
   console.log("User does not have a valid session!");
   res.redirect('/login');
 });
+
 app.use((err, req, res, next) => {
   return res.status(400).end();
 });
