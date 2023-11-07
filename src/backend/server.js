@@ -1,8 +1,11 @@
 const express = require("express");
 const pg = require("pg");
 const path = require("path");
-const session = require("express-session")
-const bcrypt = require("bcrypt")
+const session = require("express-session");
+const bcrypt = require("bcrypt");
+
+const { generateHomePage } = require("./routes/home");
+const { LoginType, getUserType } = require('./utils/roles');
 
 const app = express();
 const SALT_ROUNDS = 10;
@@ -10,11 +13,7 @@ const SESSION_DURATION = 1200000; // 20 minutes
 const HOSTNAME = "0.0.0.0";
 const PORT = process.env.PORT;
 const ROLES = ["admin", "teacher", "student"];
-const LoginType = {
-	Student: "student",
-	Teacher: "teacher",
-	Admin: "admin"
-};
+
 const pool = new pg.Pool({
   user: process.env.POSTGRES_USER,
 	host: process.env.POSTGRES_HOST,
@@ -40,7 +39,7 @@ app.use("/assets", express.static(path.join(__dirname, "..", "frontend", "assets
 app.use((req, res, next) => {
   if (req.session.isAuthenticated)
     return next();
-  
+
   if (req.path === '/login')
     return next();
 
@@ -53,15 +52,6 @@ app.use((err, req, res, next) => {
 
 function getHtmlPath(filename) {
   return path.join(__dirname, "..", "frontend", "public", filename);
-}
-
-function getUserType(role) {
-  if (role === "student")
-    return LoginType.Student;
-  else if (role === "teacher")
-    return LoginType.Teacher;
-
-  return LoginType.Admin;
 }
 
 //Hardcode admin user for time being
@@ -88,7 +78,7 @@ function generateTestUsers() {
 generateTestUsers();
 
 app.get("/home", (req, res) => {
-  return res.sendFile(getHtmlPath("home.html"));
+  return res.contentType("text/html").send(generateHomePage(req.session.role));
 });
 
 app.get("/login", async (req, res) => {
@@ -198,8 +188,10 @@ app.post("/login", async (req, res) => {
     // Verified correct password submitted, proceed to session auth
     req.session.isAuthenticated = true;
     req.session.role = getUserType(role);
+    req.session.username = username;
     return res.redirect('/home');
   } catch(error) {
+    console.log(error);
     return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
   }
 });
