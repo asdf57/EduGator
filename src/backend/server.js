@@ -82,7 +82,9 @@ function generateTestUsers() {
 generateTestUsers();
 
 app.get("/home", (req, res) => {
-  return res.contentType("text/html").send(generateHomePage(req.session.role));
+  const
+  return res.sendFile(getHtmlPath("home.html"))
+  //return res.contentType("text/html").send(generateHomePage(req.session.role));
 });
 
 app.get("/login", async (req, res) => {
@@ -106,6 +108,7 @@ app.get("/signup", async (req, res) => {
     return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
   }
 });
+
 
 app.post("/signup", async (req, res) => {
   try {
