@@ -5,7 +5,6 @@ const session = require("express-session");
 const bcrypt = require("bcrypt");
 const ejs = require("ejs");
 
-const { generateHomePage } = require("./routes/home");
 const { LoginType, getUserType } = require('./utils/roles');
 
 const app = express();
@@ -16,6 +15,7 @@ const PORT = process.env.PORT;
 const ROLES = ["admin", "teacher", "student"];
 
 app.set("view engine", "ejs");
+app.set('views', path.join(__dirname, 'templates'));
 
 const pool = new pg.Pool({
   user: process.env.POSTGRES_USER,
@@ -81,8 +81,13 @@ function generateTestUsers() {
 
 generateTestUsers();
 
-app.get("/home", (req, res) => {
-  return res.contentType("text/html").send(generateHomePage(req.session.role));
+async function renderTemplateFile(filename, data) {
+  return await ejs.renderFile(path.join(__dirname, `templates/${filename}`), data, {async: true});
+}
+
+app.get("/home", async (req, res) => {
+  return res.render("home", {username: req.session.username, role: req.session.role});
+  // return res.contentType("text/html").send(await renderTemplateFile("home.ejs", {role: req.session.role}));
 });
 
 app.get("/login", async (req, res) => {
@@ -93,12 +98,12 @@ app.get("/login", async (req, res) => {
   }
 });
 
-app.get("/signup", async (req, res) => {
+app.get("/create", async (req, res) => {
   try {
     const role = req.session.role;
 
     if (role === LoginType.Admin) {
-      return res.sendFile(getHtmlPath("signup.html"));
+      return res.sendFile(getHtmlPath("create.html"));
     } else {
       return res.sendFile(getHtmlPath("login.html"));
     }
@@ -107,7 +112,7 @@ app.get("/signup", async (req, res) => {
   }
 });
 
-app.post("/signup", async (req, res) => {
+app.post("/create", async (req, res) => {
   try {
     const username = req.body.username;
     const password = req.body.password;
