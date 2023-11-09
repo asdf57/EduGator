@@ -81,10 +81,6 @@ function generateTestUsers() {
 
 generateTestUsers();
 
-async function renderTemplateFile(filename, data) {
-  return await ejs.renderFile(path.join(__dirname, `templates/${filename}`), data, {async: true});
-}
-
 app.get("/home", async (req, res) => {
   return res.render("home", {username: req.session.username, role: req.session.role});
   // return res.contentType("text/html").send(await renderTemplateFile("home.ejs", {role: req.session.role}));
@@ -103,7 +99,8 @@ app.get("/create", async (req, res) => {
     const role = req.session.role;
 
     if (role === LoginType.Admin) {
-      return res.sendFile(getHtmlPath("create.html"));
+      res.render("create", {courses: [{name: "test1"}, {name: "test2"}]});
+      // return res.sendFile(getHtmlPath("create.html"));
     } else {
       return res.sendFile(getHtmlPath("login.html"));
     }
