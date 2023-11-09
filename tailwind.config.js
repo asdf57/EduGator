@@ -2,6 +2,7 @@
 module.exports = {
   content: [
     './src/frontend/**/*.html',
+    './src/backend/**/*.{html,ejs}'
   ],
   theme: {
     extend: {},
