@@ -1,0 +1,20 @@
+<aside class="drawer w-64">
+    <!-- <input id="my-drawer" type="checkbox" class="drawer-toggle" /> -->
+    <div class="drawer-content absolute left-[50%] top-[50%]">
+    </div>
+    <div class="drawer-side">
+        <!-- <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label> -->
+        <ul class="menu p-4 w-80 min-h-full bg-base-100 text-base-content text-2xl font-semibold">
+            <li class="mb-2 font-semibold text-xl flex flex-col items-center justify-center h-full">
+                <ion-icon style="font-size: 64px" name="person-circle-outline"></ion-icon>
+                <%= username %>
+            </li>
+        <% if (role === "admin") { %>
+            <li><a href="/create"><ion-icon name="school-outline"></ion-icon>Create Entities</a></li>
+            <li><a href="/manage"><ion-icon name="school-outline"></ion-icon>Manage Entities</a></li>
+        <% } else {%>
+            <li><a href="/courses"><ion-icon name="school-outline"></ion-icon>Courses</a></li>
+        <% } %>
+        </ul>
+    </div>
+</aside>
