@@ -10,7 +10,7 @@ const resultDiv = document.getElementById("result");
 signupButton.addEventListener("click", () => {
     resultDiv.textContent = "";
 
-    fetch("/signup", {
+    fetch("/create", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json"
