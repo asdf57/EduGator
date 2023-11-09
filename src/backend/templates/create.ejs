@@ -58,6 +58,28 @@
                 <input id="graduation-date" type="date" class="input input-bordered w-full" name="expectedGraduation">
             </div>
 
+            <!-- For teachers and students, show list of courses -->
+            <div class="w-56 h-64 bg-base-300 rounded-box overflow-y-auto">
+                <div class="menu p-4">
+                  <ul>
+                    <li class="menu-item mb-2">
+                      <input type="checkbox" id="option1" class="hidden peer" />
+                      <label for="option1" class="block cursor-pointer p-2 rounded-lg hover:bg-base-200 peer-checked:bg-primary peer-checked:text-white peer-checked:border peer-checked:border-primary">
+                        Option 1
+                      </label>
+                    </li>
+                    <li class="menu-item mb-2">
+                      <input type="checkbox" id="option2" class="hidden peer" />
+                      <label for="option2" class="block cursor-pointer p-2 rounded-lg hover:bg-base-200 peer-checked:bg-primary peer-checked:text-white peer-checked:border peer-checked:border-primary">
+                        Option 2
+                      </label>
+                    </li>
+                    <!-- Repeat for other options -->
+                  </ul>
+                </div>
+              </div>
+                         
+
             <div class="form-control mb-6">
                 <label class="label">
                     <span class="label-text">Password</span>
