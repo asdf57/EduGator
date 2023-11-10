@@ -4,6 +4,7 @@ const path = require("path");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 const ejs = require("ejs");
+const course = require("./scripts/course");
 
 const { LoginType, getUserType } = require('./utils/roles');
 
@@ -99,13 +100,14 @@ app.get("/create", async (req, res) => {
     const role = req.session.role;
 
     if (role === LoginType.Admin) {
-      res.render("create", {courses: [{name: "test1"}, {name: "test2"}]});
-      // return res.sendFile(getHtmlPath("create.html"));
+      courses = await course.getAllCourses(pool);
+      res.render("create", {courses: courses});
     } else {
       return res.sendFile(getHtmlPath("login.html"));
     }
   } catch (error) {
-    return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
+    console.log(`Error in create route: ${error}`);
+    return res.status(500).send("Unexpected error occurred. Please try again later!");
   }
 });
 
