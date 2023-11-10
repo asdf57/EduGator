@@ -39,12 +39,17 @@ signupButton.addEventListener("click", () => {
 function toggleFields() {
     const academicYearField = document.getElementById('academicYearField');
     const graduationDateField = document.getElementById('graduationDateField');
+    const coursesField = document.getElementById("courseField");
 
     if (roleSelect.value === "student") {
         academicYearField.classList.remove('hidden');
         graduationDateField.classList.remove('hidden');
+        coursesField.classList.remove('hidden');
+    } else if (roleSelect.value === "teacher") {
+        coursesField.classList.remove('hidden');
     } else {
         academicYearField.classList.add('hidden');
         graduationDateField.classList.add('hidden');
+        coursesField.classList.add('hidden');
     }
 }
