@@ -26,7 +26,7 @@ CREATE TABLE teacher (
 CREATE TABLE courses (
         course_id SERIAL PRIMARY KEY,
         course_name VARCHAR(255) NOT NULL,
-        teacher_id INT REFERENCES teacher(teacher_id),
+        teacher_username VARCHAR(255) NOT NULL,
         description VARCHAR(255),
         course_start DATE,
         course_end DATE
