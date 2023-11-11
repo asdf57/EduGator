@@ -67,9 +67,9 @@
                         <ul>
                             <% for (let i = 0; i < courses.length; i++) { %>
                                 <li class="menu-item mb-2">
-                                    <input type="checkbox" id="option<%=i+1%>" class="hidden peer" />
+                                    <input type="checkbox" name="course" id="option<%=i+1%>" value=<%= courses[i].id%> class="hidden peer" />
                                     <label for="option<%=i+1%>" class="block cursor-pointer p-3 rounded-lg hover:bg-base-200 peer-checked:bg-primary peer-checked:text-white peer-checked:border peer-checked:border-primary text-center text-lg" >
-                                        <%= courses[i].course_name %>
+                                        <span><%= courses[i].id%> - <%= courses[i].course_name %></span>
                                     </label>
                                 </li>
                             <% } %>
