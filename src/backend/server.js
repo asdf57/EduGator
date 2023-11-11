@@ -4,8 +4,9 @@ const path = require("path");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 const ejs = require("ejs");
-const course = require("./scripts/course");
 
+const db = require("./scripts/database");
+const course = require("./scripts/course");
 const { LoginType, getUserType } = require('./utils/roles');
 
 const app = express();
@@ -47,7 +48,6 @@ app.use((req, res, next) => {
   if (req.path === '/login')
     return next();
 
-  console.log("User does not have a valid session!");
   res.redirect('/login');
 });
 
@@ -84,7 +84,6 @@ generateTestUsers();
 
 app.get("/home", async (req, res) => {
   return res.render("home", {username: req.session.username, role: req.session.role});
-  // return res.contentType("text/html").send(await renderTemplateFile("home.ejs", {role: req.session.role}));
 });
 
 app.get("/login", async (req, res) => {
@@ -111,6 +110,67 @@ app.get("/create", async (req, res) => {
   }
 });
 
+app.get("/delete", async (req, res) => {
+    try {
+        const role = req.session.role;
+
+        if (role === LoginType.Admin) {
+            const admins = await db.getAllEntriesFromRole(pool, LoginType.Admin);
+            const students = await db.getAllEntriesFromRole(pool, LoginType.Student);
+            const teachers = await db.getAllEntriesFromRole(pool, LoginType.Teacher);
+
+            res.render("delete", {admins: admins, students: students, teachers: teachers});
+        } else {
+            return res.sendFile(getHtmlPath("login.html"));
+        }
+    } catch (error) {
+        console.log(`Error in create route: ${error}`);
+        return res.status(500).send("Unexpected error occurred. Please try again later!");
+    }
+});
+
+app.post("/delete", async (req, res) => {
+    try {
+        const usernames = req.body.usernames;
+        const userRole = req.body.role;
+        const sessionRole = req.session.role;
+
+        if (sessionRole !== LoginType.Admin) {
+            return res.status(401).json({error: "Insufficient permissions to create users!"});
+        }
+
+        if (!usernames || !userRole) {
+            return res.sendStatus(401);
+        }
+
+        if (typeof usernames !== "object" || typeof userRole !== "string") {
+            return res.sendStatus(401);
+        }
+
+        if (!ROLES.includes(userRole)) {
+            return res.status(400).json({"error": "Invalid role was provided!"});
+        }
+
+        if (usernames.length <= 0){
+            return res.status(400).json({"error": "No users were selected!"});
+        }
+
+        if (usernames.includes("root") && userRole === LoginType.Admin) {
+            return res.status(400).json({"error": "Cannot delete the root admin user!"});
+        }
+
+        for (let i = 0; i < usernames.length; i++) {
+            const query = pool.query(`DELETE FROM ${userRole} WHERE username = $1`, [usernames[i]]);
+            if (!query) {
+                return res.status(500).json({"error": "Error while deleting user(s)!"});
+            }
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
+    }
+});
+
 app.post("/create", async (req, res) => {
   try {
     const username = req.body.username;
@@ -119,6 +179,7 @@ app.post("/create", async (req, res) => {
     const academicYear = req.body.academicYear;
     const graduationDate = req.body.graduationDate;
     const userRole = req.body.role;
+    const selectedCourses = req.body.courses;
     const sessionRole = req.session.role;
 
     if (sessionRole !== LoginType.Admin)
@@ -147,17 +208,58 @@ app.post("/create", async (req, res) => {
     if (!hashedPassword)
       return res.status(500).json({error: "An error occurred"});
 
+    if (getUserType(userRole) === LoginType.Admin && selectedCourses.length > 0){
+      return res.status(500).json({error: "Admins cannot specify courses!"});
+    }
+
+    for (let i = 0; i < selectedCourses.length; i++) {
+      const courseQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [selectedCourses[i]]);
+      if (courseQuery.rows.length < 1)
+        return res.status(500).json({error: "Could not find course in the database!"});
+    }
+
     let insertQuery;
     if (getUserType(userRole) === LoginType.Student) {
       insertQuery = await pool.query(
         `INSERT INTO student (username, actualname, academic_year, expected_graduation, password_hash) VALUES ($1,$2,$3,$4,$5)`,
         [username, actualName, academicYear, graduationDate, hashedPassword]
       );
+
+      const id = await db.getIdFromUsername(username, LoginType.Student, pool);
+      if (!id) {
+        return res.status(500).json({error: "Could not obtain a corresponding student ID!"});
+      }
+
+      for (let i = 0; i < selectedCourses.length; i++) {
+        const courseQuery = await pool.query(
+          `INSERT INTO student_courses (student_id, course_id) VALUES ($1, $2)`,
+          [id, selectedCourses[i]]
+        );
+
+        if (!courseQuery)
+          return res.status(500).json({error: "An error occurred while registering for the selected course(s)!"});
+      }
+
     } else if (getUserType(userRole) === LoginType.Teacher) {
       insertQuery = await pool.query(
         `INSERT INTO teacher (username, actualname, password_hash) VALUES ($1,$2,$3)`,
         [username, actualName, hashedPassword]
       );
+
+      const id = await db.getIdFromUsername(username, LoginType.Teacher, pool);
+      if (!id) {
+        return res.status(500).json({error: "Could not obtain a corresponding teacher ID!"});
+      }
+
+      for (let i = 0; i < selectedCourses.length; i++) {
+        const courseQuery = await pool.query(
+          `UPDATE courses SET teacher_id = $1 WHERE id = $2;`,
+          [id, selectedCourses[i]]
+        );
+
+        if (!courseQuery)
+          return res.status(500).json({error: "An error occurred while registering the teacher to the selected course(s)!"});
+      }
     } else {
       insertQuery = await pool.query(
         `INSERT INTO admin (username, actualname, password_hash) VALUES ($1,$2,$3)`,
@@ -168,6 +270,7 @@ app.post("/create", async (req, res) => {
     if (!insertQuery)
       return res.status(500).json({error: "An error occurred while creating the user!"});
   } catch (error) {
+    console.log(error);
     return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
   }
 });
