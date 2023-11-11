@@ -1,6 +1,3 @@
-
-
-
 async function getAllCourses(pool) {
     try {
         const userQuery = await pool.query(`SELECT * FROM courses`);
