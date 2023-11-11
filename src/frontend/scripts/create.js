@@ -8,7 +8,15 @@ const passwordInput = document.getElementById("password");
 const resultDiv = document.getElementById("result");
 
 signupButton.addEventListener("click", () => {
+    const courseInputs = document.getElementsByName("course");
+
     resultDiv.textContent = "";
+
+    const selectedCourses = []
+    courseInputs.forEach((checkbox) => {
+        if (checkbox.checked)
+            selectedCourses.push(checkbox.value);
+    });
 
     fetch("/create", {
 		method: "POST",
@@ -21,6 +29,7 @@ signupButton.addEventListener("click", () => {
             actualName: actualNameInput.value,
             academicYear: academicYearSelect.value,
             graduationDate: graduationDateInput.value,
+            courses: selectedCourses,
             role: roleSelect.value
         })
 	}).then(response => {
@@ -46,6 +55,9 @@ function toggleFields() {
         graduationDateField.classList.remove('hidden');
         coursesField.classList.remove('hidden');
     } else if (roleSelect.value === "teacher") {
+        console.log("teacher");
+        academicYearField.classList.add('hidden');
+        graduationDateField.classList.add('hidden');
         coursesField.classList.remove('hidden');
     } else {
         academicYearField.classList.add('hidden');
