@@ -1,4 +1,3 @@
-
 async function getIdFromUsername(username, role, pool) {
     try {
         const idQuery = await pool.query(`SELECT id FROM ${role} WHERE username = $1`, [username]);
