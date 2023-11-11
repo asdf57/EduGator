@@ -1,8 +1,8 @@
 CREATE TYPE academic_year AS ENUM ('freshman', 'sophomore', 'junior', 'senior');
 
 CREATE TABLE student (
-        student_id SERIAL PRIMARY KEY,
-        username VARCHAR(255) NOT NULL,
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL UNIQUE,
         actualname VARCHAR(255) NOT NULL,
         academic_year academic_year NOT NULL,
         expected_graduation DATE,
@@ -10,44 +10,44 @@ CREATE TABLE student (
 );
 
 CREATE TABLE admin (
-        admin_id SERIAL PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         username VARCHAR(255) NOT NULL,
         actualname VARCHAR(255) NOT NULL,
         password_hash VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE teacher (
-        teacher_id SERIAL PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         username VARCHAR(255) NOT NULL,
         actualname VARCHAR(255) NOT NULL,
         password_hash VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE courses (
-        course_id SERIAL PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         course_name VARCHAR(255) NOT NULL,
-        teacher_username VARCHAR(255) NOT NULL,
+        teacher_id INTEGER REFERENCES teacher(id) ON DELETE SET NULL,
         description VARCHAR(255),
         course_start DATE,
         course_end DATE
 );
 
 CREATE TABLE course_prerequisites (
-        course_id INT REFERENCES courses(course_id),
-        prerequisite_id INT REFERENCES courses(course_id),
-        PRIMARY KEY (course_id, prerequisite_id)
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL,
+        prerequisite_id INTEGER REFERENCES courses(id) ON DELETE SET NULL
 );
 
 CREATE TABLE course_tabs (
-        tab_id SERIAL PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        course_id INT REFERENCES courses(course_id),
+        course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL,
         visibility BOOLEAN
 );
 
 CREATE TABLE course_modules (
-        module_id SERIAL PRIMARY KEY,
-        tab_id INT REFERENCES course_tabs(tab_id),
+        id SERIAL PRIMARY KEY,
+        tab_id INTEGER REFERENCES course_tabs(id) ON DELETE SET NULL,
         title TEXT,
         description TEXT,
         content JSONB,
@@ -55,8 +55,8 @@ CREATE TABLE course_modules (
 );
 
 CREATE TABLE assignments (
-        assignment_id SERIAL PRIMARY KEY,
-        tabid INT REFERENCES course_tabs(tab_id),
+        id SERIAL PRIMARY KEY,
+        tab_id INTEGER REFERENCES course_tabs(id) ON DELETE SET NULL,
         title TEXT,
         description TEXT,
         due_date DATE,
@@ -65,13 +65,14 @@ CREATE TABLE assignments (
 );
 
 CREATE TABLE submissions (
-        submission_id SERIAL PRIMARY KEY,
-        assignment_id INT REFERENCES assignments(assignment_id),
-        student_id INT REFERENCES student(student_id),
+        id SERIAL PRIMARY KEY,
+        assignment_id INTEGER REFERENCES assignments(id) ON DELETE SET NULL,
+        student_id INTEGER REFERENCES student(id) ON DELETE SET NULL,
         submission JSONB
 );
 
 CREATE TABLE student_courses (
-        student_id INT REFERENCES student(student_id),
-        course_id INT REFERENCES courses(course_id)
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES student(id) NOT NULL ON DELETE SET NULL,
+        course_id INTEGER REFERENCES courses(id) NOT NULL ON DELETE SET NULL
 );
