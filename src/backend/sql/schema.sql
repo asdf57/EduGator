@@ -82,6 +82,6 @@ INSERT INTO courses (course_name,teacher_id,description,course_start,course_end)
 INSERT INTO courses (course_name,teacher_id,description,course_start,course_end) VALUES ('courseB','1','This is another test','01/01/2024','07/07/2024');
 INSERT INTO courses (course_name,teacher_id,description,course_start,course_end) VALUES ('courseC','1','test last test','03/01/2024','07/07/2024');
 
-INSERT INTO student_courses(student_id,course_id) VALUES ('1','2');
-INSERT INTO student_courses(student_id,course_id) VALUES ('2','2');
-INSERT INTO student_courses(student_id,course_id) VALUES ('1','1');
+INSERT INTO student_courses(student_id,course_id) VALUES (1,2);
+INSERT INTO student_courses(student_id,course_id) VALUES (2,2);
+INSERT INTO student_courses(student_id,course_id) VALUES (1,1);
