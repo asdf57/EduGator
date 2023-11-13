@@ -32,15 +32,9 @@ CREATE TABLE courses (
         course_end DATE
 );
 
-CREATE TABLE course_prerequisites (
-        id SERIAL PRIMARY KEY,
-        course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL,
-        prerequisite_id INTEGER REFERENCES courses(id) ON DELETE SET NULL
-);
-
 CREATE TABLE course_tabs (
         id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
+        tab_name VARCHAR(255) NOT NULL,
         course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL,
         visibility BOOLEAN
 );
