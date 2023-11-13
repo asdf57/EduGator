@@ -85,3 +85,9 @@ INSERT INTO courses (course_name,teacher_id,description,course_start,course_end)
 INSERT INTO student_courses(student_id,course_id) VALUES (1,2);
 INSERT INTO student_courses(student_id,course_id) VALUES (2,2);
 INSERT INTO student_courses(student_id,course_id) VALUES (1,1);
+
+INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 1', 1, TRUE);
+INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 2', 1, TRUE);
+INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 2', 1, TRUE);
+
+INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 1', 1, TRUE);
