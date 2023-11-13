@@ -67,6 +67,6 @@ CREATE TABLE submissions (
 
 CREATE TABLE student_courses (
         id SERIAL PRIMARY KEY,
-        student_id INTEGER REFERENCES student(id) NOT NULL ON DELETE SET NULL,
-        course_id INTEGER REFERENCES courses(id) NOT NULL ON DELETE SET NULL
+        student_id INTEGER REFERENCES student(id) ON DELETE SET NULL,
+        course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL
 );
