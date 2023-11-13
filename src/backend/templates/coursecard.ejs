@@ -4,12 +4,17 @@
 <div class="grid grid-cols-3 gap-6 mb-8">
     <% courses.forEach(function (course) { %>
     <a href="<%=course.course_name %>" class="block transition-colors duration-300 hover:bg-gray-100 rounded-lg">
-        <div class="p-4 bg-white shadow-md rounded-lg">
-            <div class="pt-4 pb-2">
-                <h2 class="text-lg font-medium"><%=course.course_name%>></h2>
-                <p class="text-gray-500"><%=course.description%></p>
+    <div class="card card-bordered">
+        <figure><img src="https://i.imgur.com/TZuVgPs.png" alt="Course Image"></figure>
+        <div class="card-body">
+            <h2 class="card-title"><%=course.course_name%></h2>
+            <p><%=course.description%></p>
+            <div class="justify-end card-actions">
+                <p>Start: <%=course.course_start%></p>
+                <p>End: <%=course.course_end%></p>
             </div>
         </div>
+    </div>
     </a>
     <%}); %>
 </div>
