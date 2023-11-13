@@ -21,10 +21,10 @@ app.set('views', path.join(__dirname, 'templates'));
 
 const pool = new pg.Pool({
   user: process.env.POSTGRES_USER,
-	host: process.env.POSTGRES_HOST,
-	database: process.env.POSTGRES_DB,
-	password: process.env.POSTGRES_PASSWORD,
-	port: process.env.POSTGRES_PORT
+  host: process.env.POSTGRES_HOST,
+  database: process.env.POSTGRES_DB,
+  password: process.env.POSTGRES_PASSWORD,
+  port: process.env.POSTGRES_PORT
 });
 
 pool.connect().then(function () {
@@ -84,7 +84,23 @@ generateTestUsers();
 
 
 app.get("/home", async (req, res) => {
-  return res.render("home", {username: req.session.username, role: req.session.role});
+  const student_query = await pool.query(`SELECT student.student_id FROM student WHERE student.username='testUser'`)
+  const student_num = student_query.rows[0]
+
+  const class_query = await pool.query(`SELECT 
+  student_courses.student_id,
+  student_courses.course_id,
+  courses.course_name,
+  courses.description,
+  courses.teacher_id,
+  courses.course_start,
+  courses.course_end
+  FROM student
+  JOIN student_courses ON student.student_id = student_courses.student_id
+  JOIN courses ON student_courses.course_id = courses.course_id 
+  WHERE student_courses.student_id = $1`, [student_num.student_id]);
+  return res.render("home", {username: req.session.username, role: req.session.role, courses: class_query.rows});
+  // return res.contentType("text/html").send(await renderTemplateFile("home.ejs", {role: req.session.role}));
 });
 
 app.get("/login", async (req, res) => {
@@ -222,8 +238,8 @@ app.post("/create", async (req, res) => {
     let insertQuery;
     if (getUserType(userRole) === LoginType.Student) {
       insertQuery = await pool.query(
-        `INSERT INTO student (username, actualname, academic_year, expected_graduation, password_hash) VALUES ($1,$2,$3,$4,$5)`,
-        [username, actualName, academicYear, graduationDate, hashedPassword]
+          `INSERT INTO student (username, actualname, academic_year, expected_graduation, password_hash) VALUES ($1,$2,$3,$4,$5)`,
+          [username, actualName, academicYear, graduationDate, hashedPassword]
       );
 
       const id = await db.getIdFromUsername(username, LoginType.Student, pool);
@@ -243,8 +259,8 @@ app.post("/create", async (req, res) => {
 
     } else if (getUserType(userRole) === LoginType.Teacher) {
       insertQuery = await pool.query(
-        `INSERT INTO teacher (username, actualname, password_hash) VALUES ($1,$2,$3)`,
-        [username, actualName, hashedPassword]
+          `INSERT INTO teacher (username, actualname, password_hash) VALUES ($1,$2,$3)`,
+          [username, actualName, hashedPassword]
       );
 
       const id = await db.getIdFromUsername(username, LoginType.Teacher, pool);
@@ -263,8 +279,8 @@ app.post("/create", async (req, res) => {
       }
     } else {
       insertQuery = await pool.query(
-        `INSERT INTO admin (username, actualname, password_hash) VALUES ($1,$2,$3)`,
-        [username, actualName, hashedPassword]
+          `INSERT INTO admin (username, actualname, password_hash) VALUES ($1,$2,$3)`,
+          [username, actualName, hashedPassword]
       );
     }
 
