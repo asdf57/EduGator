@@ -111,6 +111,15 @@ app.get("/login", async (req, res) => {
   }
 });
 
+app.get("/logout", async (req, res) => {
+    if (req.session.isAuthenticated) {
+        req.session.destroy();
+        return res.sendFile(getHtmlPath("login.html"));
+    } else {
+      return res.sendFile(getHtmlPath("login.html"));
+    }
+  });
+
 app.get("/create", async (req, res) => {
   try {
     const role = req.session.role;
