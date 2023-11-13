@@ -82,7 +82,22 @@ function generateTestUsers() {
 generateTestUsers();
 
 app.get("/home", async (req, res) => {
-  return res.render("home", {username: req.session.username, role: req.session.role});
+  const student_query = await pool.query(`SELECT student.student_id FROM student WHERE student.username='testUser'`)
+  const student_num = student_query.rows[0]
+
+  const class_query = await pool.query(`SELECT 
+  student_courses.student_id,
+  student_courses.course_id,
+  courses.course_name,
+  courses.description,
+  courses.teacher_id,
+  courses.course_start,
+  courses.course_end
+  FROM student
+  JOIN student_courses ON student.student_id = student_courses.student_id
+  JOIN courses ON student_courses.course_id = courses.course_id 
+  WHERE student_courses.student_id = $1`, [student_num.student_id]);
+  return res.render("home", {username: req.session.username, role: req.session.role, courses: class_query.rows});
   // return res.contentType("text/html").send(await renderTemplateFile("home.ejs", {role: req.session.role}));
 });
 

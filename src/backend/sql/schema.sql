@@ -75,3 +75,18 @@ CREATE TABLE student_courses (
         student_id INT REFERENCES student(student_id),
         course_id INT REFERENCES courses(course_id)
 );
+
+INSERT INTO student (username, actualname,academic_year,expected_graduation,password_hash) VALUES
+('testUser','User User','freshman','01/01/2024','$2a$12$IMp2cGT0uJ/v6BSHo5lfSerg1tNRVKK5wnrlnGKIDvsBbfNxUkTuq');
+INSERT INTO student (username, actualname,academic_year,expected_graduation,password_hash) VALUES
+('tester','User two','freshman','01/01/2024','$2a$12$IMp2cGT0uJ/v6BSHo5lfSerg1tNRVKK5wnrlnGKIDvsBbfNxUkTuq');
+
+INSERT INTO teacher (username,actualname,password_hash) VALUES ('testTeacher','Teach Teacher','$2a$12$s9Ehm.s2FDmo5ONh4Jmp/.HeTiMukNe5jXAGQRfbIWAPZNcXTZlBG');
+
+INSERT INTO courses (course_name,teacher_id,description,course_start,course_end) VALUES ('courseA','1','test','01/01/2024','07/07/2024');
+INSERT INTO courses (course_name,teacher_id,description,course_start,course_end) VALUES ('courseB','1','This is another test','01/01/2024','07/07/2024');
+INSERT INTO courses (course_name,teacher_id,description,course_start,course_end) VALUES ('courseC','1','test last test','03/01/2024','07/07/2024');
+
+INSERT INTO student_courses(student_id,course_id) VALUES ('1','2');
+INSERT INTO student_courses(student_id,course_id) VALUES ('2','2');
+INSERT INTO student_courses(student_id,course_id) VALUES ('1','1');
