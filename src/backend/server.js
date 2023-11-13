@@ -100,7 +100,7 @@ app.get("/create", async (req, res) => {
 
     if (role === LoginType.Admin) {
       courses = await course.getAllCourses(pool);
-      res.render("create", {courses: courses});
+      res.render("create", {courses: courses, username: req.session.username, role: req.session.role});
     } else {
       return res.sendFile(getHtmlPath("login.html"));
     }
@@ -119,7 +119,7 @@ app.get("/delete", async (req, res) => {
             const students = await db.getAllEntriesFromRole(pool, LoginType.Student);
             const teachers = await db.getAllEntriesFromRole(pool, LoginType.Teacher);
 
-            res.render("delete", {admins: admins, students: students, teachers: teachers});
+            res.render("delete", {admins: admins, students: students, teachers: teachers, username: req.session.username, role: req.session.role});
         } else {
             return res.sendFile(getHtmlPath("login.html"));
         }
