@@ -7,7 +7,7 @@ const ejs = require("ejs");
 
 const db = require("./scripts/database");
 const course = require("./scripts/course");
-const { LoginType, getUserType } = require('./utils/roles');
+const { LoginType, getUserType } = require('./scripts/roles');
 
 const app = express();
 const SALT_ROUNDS = 10;
