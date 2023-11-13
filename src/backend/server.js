@@ -82,6 +82,35 @@ function generateTestUsers() {
 
 generateTestUsers();
 
+app.get("/course/:courseId", async (req, res) => {
+    const courseId = req.params.courseId;
+
+    // If student, check if student is enrolled in course
+
+    if (role === LoginType.Admin) {
+        return res.status(401).json({error: "Admin role cannot access courses!"});
+    }
+
+    const courseIdQuery = pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
+    if (!courseIdQuery) {
+        return res.status(500).json({"error": "Error checking if course is valid!"});
+    }
+
+    if (courseIdQuery.length <= 0) {
+        return res.status(400).json({"error": "Course does not exist!"});
+    }
+
+    //Check for enrollment
+    
+
+    const courseTabsQuery = pool.query(`SELECT * FROM course_tabs WHERE course_id = $1`, [courseId]);
+    if (!courseTabsQuery) {
+        return res.status(500).json({"error": "Error checking for course tabs!"});
+    }
+
+    res.render("course", {username: req.session.username, role: req.session.role, courseTabs: courseTabsQuery.rows});
+});
+
 app.get("/home", async (req, res) => {
   return res.render("home", {username: req.session.username, role: req.session.role});
 });
