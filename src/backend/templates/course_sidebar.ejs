@@ -1,4 +1,4 @@
-<aside class="sidebar menu p-4 shadow-lg bg-base-100 w-64">
+<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64">
     <ul id="course-tabs">
         <% for (let i = 0; i < courseTabs.length; i++) { %>
             <li class="menu-item mb-2">
@@ -6,7 +6,9 @@
             </li>
         <% } %>
         <% if (role === "teacher") { %>
-            <a href="/create/coursetab"><ion-icon name="add-outline">Add Content</ion-icon></a>
+            <li class="center items-center justify-center">
+                <a href="/create/coursetab"><ion-icon name="add-outline">Add Content</ion-icon></a>
+            </li>
         <% }%>
     </ul>
 </aside>
