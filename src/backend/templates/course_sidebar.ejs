@@ -1,0 +1,14 @@
+<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64">
+    <ul id="course-tabs">
+        <% for (let i = 0; i < courseTabs.length; i++) { %>
+            <li class="menu-item mb-2">
+                <a href="#"><%=courseTabs[i].tab_name%></a>
+            </li>
+        <% } %>
+        <% if (role === "teacher") { %>
+            <li class="center items-center justify-center">
+                <%- include( 'create_coursetab' ) %>
+            </li>
+        <% }%>
+    </ul>
+</aside>
