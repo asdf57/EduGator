@@ -55,6 +55,8 @@ app.use((err, req, res, next) => {
   return res.status(400).end();
 });
 
+app.use(express.urlencoded({ extended: true }));
+
 function getHtmlPath(filename) {
   return path.join(__dirname, "..", "frontend", "public", filename);
 }
@@ -84,24 +86,48 @@ generateTestUsers();
 
 
 app.get("/home", async (req, res) => {
-  const student_query = await pool.query(`SELECT student.id FROM student WHERE student.username='testUser'`)
-  const student_num = student_query.rows[0]
+  try {
+      let courses;
+      if (req.session.role === 'admin') {
+          const allCoursesQuery = await pool.query('SELECT * FROM courses');
+          courses = allCoursesQuery.rows;
+      } else {
+          const student_query = await pool.query(`SELECT student.id FROM student WHERE student.username=$1`, [req.session.username]);
+          const student_num = student_query.rows[0];
 
-  const class_query = await pool.query(`SELECT 
-  student_courses.id,
-  student_courses.student_id,
-  courses.course_name,
-  courses.description,
-  courses.teacher_id,
-  courses.course_start,
-  courses.course_end
-  FROM student
-  JOIN student_courses ON student.id = student_courses.student_id
-  JOIN courses ON student_courses.course_id = courses.id 
-  WHERE student_courses.student_id = $1`, [student_num.id]);
-  return res.render("home", {username: req.session.username, role: req.session.role, courses: class_query.rows});
-  // return res.contentType("text/html").send(await renderTemplateFile("home.ejs", {role: req.session.role}));
+          if (!student_num) {
+              return res.status(404).send("Student not found");
+          }
+
+          const class_query = await pool.query(`
+              SELECT 
+              student_courses.id,
+              student_courses.student_id,
+              courses.course_name,
+              courses.description,
+              courses.teacher_id,
+              courses.course_start,
+              courses.course_end
+              FROM student
+              JOIN student_courses ON student.id = student_courses.student_id
+              JOIN courses ON student_courses.course_id = courses.id 
+              WHERE student_courses.student_id = $1
+          `, [student_num.id]);
+
+          courses = class_query.rows;
+      }
+
+      return res.render("home", {
+          username: req.session.username, 
+          role: req.session.role, 
+          courses: courses
+      });
+  } catch (error) {
+      console.error(error);
+      res.status(500).send("Error loading page");
+  }
 });
+
 
 app.get("/login", async (req, res) => {
   if (req.session.isAuthenticated) {
@@ -134,6 +160,94 @@ app.get("/create", async (req, res) => {
     console.log(`Error in create route: ${error}`);
     return res.status(500).send("Unexpected error occurred. Please try again later!");
   }
+});
+
+app.get("/createCourse", (req, res) => {
+  if (req.session.role !== "admin") {
+    return res.redirect('/login');
+  }
+  res.render("createCourse", {
+    username: req.session.username,
+    role: req.session.role
+  });
+});
+
+app.post("/createCourse", async (req, res) => {
+  console.log("received request body:",req.body);
+  console.log("Course Name:", req.body.courseName);
+  console.log("Description:", req.body.description);
+  console.log("Course Start:", req.body.courseStart);
+  console.log("Course End:", req.body.courseEnd);
+  try {
+      if (req.session.role !== "admin") {
+          return res.status(401).send("Unauthorized");
+      }
+      const { courseName, description, courseStart, courseEnd } = req.body;
+      if (!courseName || !description || !courseStart || !courseEnd) {
+        return res.status(400).send("Missing course information");
+      } 
+      await pool.query('INSERT INTO courses (course_name, description, course_start, course_end) VALUES ($1, $2, $3, $4)', [courseName, description, courseStart, courseEnd]);
+      res.redirect('/home');
+  } catch (error) {
+      console.error(error);
+      res.status(500).send("Server error");
+  }
+});
+
+app.get("/home", async (req, res) => {
+  try {
+      const courses = await pool.query('SELECT * FROM courses');
+      res.render("home", { courses: courses.rows, username: req.session.username, role: req.session.role });
+  } catch (error) {
+      console.error(error);
+      res.status(500).send("Error loading courses");
+  }
+});
+
+app.post("/delete-course/:courseId", async (req, res) => {
+  const { courseId } = req.params;
+  if (req.session.role !== "admin") {
+      return res.status(403).send('Unauthorized');
+  }
+  try {
+      await pool.query('DELETE FROM courses WHERE id = $1', [courseId]);
+      res.status(200).send('Course deleted successfully');
+  } catch (err) {
+      console.error(err);
+      res.status(500).send('Error deleting course');
+  }
+});
+
+app.get("/course/:courseId", async (req, res) => {
+  try {
+      const courseId = req.params.courseId;
+      const courseData = await pool.query('SELECT * FROM courses WHERE id = $1', [courseId]);
+
+      if (courseData.rows.length === 0) {
+          return res.status(404).send("Course not found");
+      }
+
+      res.render("coursePage", {
+          course: courseData.rows[0],
+          username: req.session.username,
+          role: req.session.role
+      });
+  } catch (error) {
+      console.error(error);
+      res.status(500).send("Error loading course page");
+  }
+});
+
+app.get("/course-content/:courseId/:contentType", async (req, res) => {
+  const courseId = req.params.courseId;
+  const contentType = req.params.contentType;
+  let contentHtml = '<p>No content available.</p>';
+  if (contentType === 'info') {
+      contentHtml = '<p>Course information will be displayed here.</p>';
+  } else if (contentType === 'announcements') {
+      contentHtml = '<p>Announcements will be displayed here.</p>';
+  }
+  res.send(contentHtml);
 });
 
 app.get("/delete", async (req, res) => {

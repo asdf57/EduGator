@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Course</title>
+    <%- include( 'styling' ) %>
+</head>
+<body class="bg-gray-200">
+    <%- include( 'header' ) %>
+    <%- include( 'sidebar' ) %>
+    <main class="h-screen flex justify-center items-center">
+        <div class="container mx-auto p-8">
+            <div class="card p-5 bg-white">
+                <form action="/createCourse" method="post">
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Course Name</span>
+                        </label>
+                        <input type="text" placeholder="Course Name" class="input input-bordered w-full" name="courseName" required>
+                    </div>
+
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Description</span>
+                        </label>
+                        <input type="text" placeholder="Description" class="input input-bordered w-full" name="description" required>
+                    </div>
+
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Course Start Date</span>
+                        </label>
+                        <input type="date" class="input input-bordered w-full" name="courseStart" required>
+                    </div>
+
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Course End Date</span>
+                        </label>
+                        <input type="date" class="input input-bordered w-full" name="courseEnd" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">Create Course</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="scripts/create.js"></script>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</body>
+</html>
