@@ -7,7 +7,7 @@
         <% } %>
         <% if (role === "teacher") { %>
             <li class="center items-center justify-center">
-                <a href="/create/coursetab"><ion-icon name="add-outline">Add Content</ion-icon></a>
+                <%- include( 'create_coursetab' ) %>
             </li>
         <% }%>
     </ul>
