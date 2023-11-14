@@ -10,17 +10,16 @@
 <body class="bg-gray-200 font-sans">
     <!-- Header Content -->
     <%- include( 'header' ) %>
-
+    <div class="flex h-screen">
     <!-- Sidebar -->
     <%- include( 'sidebar' ) %>
 
     <!-- Main Content -->
-    <main class="flex h-screen">
+        <main class="flex grow p-4">
         <!-- Course cards -->
         <%- include( 'coursecard',{courses:courses} ) %>
-
     </main>
-
+    </div>
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </body>
