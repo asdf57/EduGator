@@ -84,34 +84,33 @@ function generateTestUsers() {
 
 generateTestUsers();
 
-
 app.get("/home", async (req, res) => {
   try {
       let courses = [];
       if (req.session.role === 'teacher' || req.session.role === 'student') {
-          const usernameQuery = await db.getIdFromUsername(req.session.username, req.session.role);
+          const id = await db.getIdFromUsername(req.session.username, req.session.role, pool);
 
-        if (!usernameQuery || !usernameQuery.rows || usernameQuery.rows.length <= 0) {
-            return res.status(500).send("User does not exist!");
-        }
+            if (!id) {
+                return res.status(500).json({error: "User does not exist!"});
+            }
 
-        if (courseResults && courseResults.length > 0){
-        const classQuery = await pool.query(`
-            SELECT 
-            ${req.session.role}_courses.id,
-            ${req.session.role}.${req.session.role}_id,
-            courses.course_name,
-            courses.description,
-            courses.course_start,
-            courses.course_end
-            FROM ${req.session.role}
-            JOIN ${req.session.role} ON ${req.session.role}.id = ${req.session.role}_courses.${req.session.role}_id
-            JOIN courses ON ${req.session.role}_courses.course_id = courses.id 
-            WHERE ${req.session.role}_courses.${req.session.role}_id = $1
-        `, [usernameQuery]);
-
-            courses = classQuery.rows;
-          }
+            const classQuery = await pool.query(`
+                SELECT 
+                ${req.session.role}_courses.id,
+                ${req.session.role}_courses.${req.session.role}_id,
+                courses.course_name,
+                courses.description,
+                courses.course_start,
+                courses.course_end
+                FROM ${req.session.role}
+                JOIN ${req.session.role}_courses ON ${req.session.role}.id = ${req.session.role}_courses.${req.session.role}_id
+                JOIN courses ON ${req.session.role}_courses.course_id = courses.id
+                WHERE ${req.session.role}_courses.${req.session.role}_id = $1
+            `, [id]);
+            
+            if (classQuery && classQuery.rows && classQuery.rows.length > 0) {
+                courses = classQuery.rows;
+            }
       }
 
       return res.render("home", {
@@ -121,7 +120,7 @@ app.get("/home", async (req, res) => {
       });
   } catch (error) {
       console.error(error);
-      res.status(500).send("Error loading page");
+      res.status(500).json("Error loading page");
   }
 });
 
@@ -308,8 +307,35 @@ app.post("/delete", async (req, res) => {
     }
 });
 
-app.post("/create", async (req, res) => {
+async function createCourseTab(req, res) {
+    const tabName = req.body.tabName;
+    const courseId = req.body.courseId;
+
+    if (req.session.role !== LoginType.Teacher)
+      return res.status(401).json({error: "Insufficient permissions to add course tab!"});
+
+    if (!tabName || !courseId) {
+        return res.status(401).json({error: "Missing required parameter!"});
+    }
+
+    const courseIdQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
+    if (!courseIdQuery)
+        return res.status(500).json({error: "Couldn't find course!"});
+
+    const addCourseTabQuery = await pool.query(`INSERT INTO course_tabs (tab_name, course_id, visibility) VALUES ($1, $2, $3)`, [tabName, courseId]);
+    if (!addCourseTabQuery) {
+        return res.status(500).json({error: "Failed to add course tab!"});
+    }
+}
+
+app.post("/create/:type", async (req, res) => {
   try {
+    const createType = req.params.type;
+
+    if (createType === "coursetab") {
+        return await createCourseTab(req, res);
+    }
+
     const username = req.body.username;
     const password = req.body.password;
     const actualName = req.body.actualName;
@@ -483,7 +509,7 @@ app.get("/course/:courseId", async (req, res) => {
         return res.status(500).json({"error": "Error checking for course tabs!"});
     }
 
-    res.render("course", {username: req.session.username, role: req.session.role, courseTabs: courseTabsQuery.rows});
+    res.render("course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
 });
 
 
