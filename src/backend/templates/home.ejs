@@ -5,21 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LMS Dashboard</title>
     <%- include( 'styling' ) %>
+    <style>
+        .delete-btn {
+            background-color: #ff4d4d; /* Red */
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        /* Add any additional styling for the delete button as needed */
+    </style>
 </head>
-
 <body class="bg-gray-200 font-sans">
     <!-- Header Content -->
     <%- include( 'header' ) %>
     <div class="flex h-screen">
-    <!-- Sidebar -->
-    <%- include( 'sidebar' ) %>
-
-    <!-- Main Content -->
-        <main class="flex grow p-4">
-        <!-- Course cards -->
-        <%- include( 'coursecard',{courses:courses} ) %>
-    </main>
+        <!-- Sidebar -->
+        <%- include( 'sidebar' ) %>
+        <!-- Main Content -->
+        <main class="flex-grow p-4">
+            <!-- Course cards -->
+            <div class="grid grid-cols-3 gap-6 mb-8" id="courseGrid">
+                <% courses.forEach(course => { %>
+                    <a href="/course/<%= course.id %>" class="block transition-colors duration-300 hover:bg-black-100 items-center text-black rounded-lg">
+                    <div class="course-card block transition-colors duration-300 hover:bg-black-100 items-center text-black rounded-lg">
+                        <div class="card card-bordered">
+                            <figure><img src="https://i.imgur.com/TZuVgPs.png" alt="Course Image"></figure>
+                            <div class="card-body">
+                                <h2 class="card-title"><%= course.course_name %></h2>
+                                <p class="text-black"><%= course.description %></p>
+                                <div class="justify-end card-actions">
+                                    <p class="text-xs">Course Start: <%= course.course_start %></p>
+                                    <p class="text-xs">Course End: <%= course.course_end %></p>
+                                    <!-- Delete button -->
+                                    <button onclick="deleteCourse('<%= course.id %>')" class="delete-btn">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </main>
     </div>
+    <script>
+        function deleteCourse(courseId) {
+            if (!confirm('Are you sure you want to delete this course?')) {
+                return;
+            }
+            fetch('/delete-course/' + courseId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+            });
+        }
+    </script>
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </body>
