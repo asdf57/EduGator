@@ -459,6 +459,8 @@ app.get("/course/:courseId", async (req, res) => {
         return res.status(401).json({error: "Admin role cannot access courses!"});
     }
 
+    console.log(courseId);
+
     const courseIdQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
     if (!courseIdQuery) {
         return res.status(500).json({"error": "Error checking if course is valid!"});
