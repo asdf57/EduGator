@@ -88,16 +88,16 @@ app.get("/home", async (req, res) => {
 
   const class_query = await pool.query(`SELECT 
   student_courses.id,
-  student_courses.id,
+  student_courses.student_id,
   courses.course_name,
   courses.description,
   courses.teacher_id,
   courses.course_start,
   courses.course_end
   FROM student
-  JOIN student_courses ON student.id = student_courses.id
-  JOIN courses ON student_courses.id = courses.id 
-  WHERE student_courses.id = $1`, [student_num.id]);
+  JOIN student_courses ON student.id = student_courses.student_id
+  JOIN courses ON student_courses.course_id = courses.id 
+  WHERE student_courses.student_id = $1`, [student_num.id]);
   return res.render("home", {username: req.session.username, role: req.session.role, courses: class_query.rows});
   // return res.contentType("text/html").send(await renderTemplateFile("home.ejs", {role: req.session.role}));
 });

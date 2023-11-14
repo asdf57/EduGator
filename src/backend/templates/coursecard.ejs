@@ -3,15 +3,15 @@
 <!-- Course Cards -->
 <div class="grid grid-cols-3 gap-6 mb-8">
     <% courses.forEach(function (course) { %>
-    <a href="<%=course.course_name %>" class="block transition-colors duration-300 hover:bg-gray-100 rounded-lg">
+    <a href="<%=course.course_name %>" class="block transition-colors duration-300 hover:bg-black-100 rounded-lg">
     <div class="card card-bordered">
         <figure><img src="https://i.imgur.com/TZuVgPs.png" alt="Course Image"></figure>
         <div class="card-body">
             <h2 class="card-title"><%=course.course_name%></h2>
-            <p><%=course.description%></p>
+            <p class="text-black"><%=course.description%></p>
             <div class="justify-end card-actions">
-                <p>Start: <%=course.course_start%></p>
-                <p>End: <%=course.course_end%></p>
+                <p class="text-xs">Start: <%=course.course_start%></p>
+                <p class="text-xs">End: <%=course.course_end%></p>
             </div>
         </div>
     </div>
