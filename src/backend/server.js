@@ -87,34 +87,31 @@ generateTestUsers();
 
 app.get("/home", async (req, res) => {
   try {
-      let courses;
-      if (req.session.role === 'admin') {
-          const allCoursesQuery = await pool.query('SELECT * FROM courses');
-          courses = allCoursesQuery.rows;
-      } else {
-          const student_query = await pool.query(`SELECT student.id FROM student WHERE student.username=$1`, [req.session.username]);
-          const student_num = student_query.rows[0];
+      let courses = [];
+      if (req.session.role === 'teacher' || req.session.role === 'student') {
+          const usernameQuery = await db.getIdFromUsername(req.session.username, req.session.role);
 
-          if (!student_num) {
-              return res.status(404).send("Student not found");
+        if (!usernameQuery || !usernameQuery.rows || usernameQuery.rows.length <= 0) {
+            return res.status(500).send("User does not exist!");
+        }
+
+        if (courseResults && courseResults.length > 0){
+        const classQuery = await pool.query(`
+            SELECT 
+            ${req.session.role}_courses.id,
+            ${req.session.role}.${req.session.role}_id,
+            courses.course_name,
+            courses.description,
+            courses.course_start,
+            courses.course_end
+            FROM ${req.session.role}
+            JOIN ${req.session.role} ON ${req.session.role}.id = ${req.session.role}_courses.${req.session.role}_id
+            JOIN courses ON ${req.session.role}_courses.course_id = courses.id 
+            WHERE ${req.session.role}_courses.${req.session.role}_id = $1
+        `, [usernameQuery]);
+
+            courses = classQuery.rows;
           }
-
-          const class_query = await pool.query(`
-              SELECT 
-              student_courses.id,
-              student_courses.student_id,
-              courses.course_name,
-              courses.description,
-              courses.teacher_id,
-              courses.course_start,
-              courses.course_end
-              FROM student
-              JOIN student_courses ON student.id = student_courses.student_id
-              JOIN courses ON student_courses.course_id = courses.id 
-              WHERE student_courses.student_id = $1
-          `, [student_num.id]);
-
-          courses = class_query.rows;
       }
 
       return res.render("home", {
@@ -393,12 +390,12 @@ app.post("/create", async (req, res) => {
 
       for (let i = 0; i < selectedCourses.length; i++) {
         const courseQuery = await pool.query(
-          `UPDATE courses SET teacher_id = $1 WHERE id = $2;`,
-          [id, selectedCourses[i]]
-        );
-
-        if (!courseQuery)
-          return res.status(500).json({error: "An error occurred while registering the teacher to the selected course(s)!"});
+            `INSERT INTO teacher_courses (teacher_id, course_id) VALUES ($1, $2)`,
+            [id, selectedCourses[i]]
+          );
+  
+          if (!courseQuery)
+            return res.status(500).json({error: "An error occurred while registering for the selected course(s)!"});
       }
     } else {
       insertQuery = await pool.query(
