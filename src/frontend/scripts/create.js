@@ -18,7 +18,7 @@ signupButton.addEventListener("click", () => {
             selectedCourses.push(checkbox.value);
     });
 
-    fetch("/create", {
+    fetch("/create/entity", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json"
