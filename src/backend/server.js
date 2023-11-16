@@ -361,103 +361,106 @@ app.post("/create/:type", async (req, res) => {
         return await createCourseTab(req, res);
     }
 
-    const username = req.body.username;
-    const password = req.body.password;
-    const actualName = req.body.actualName;
-    const academicYear = req.body.academicYear;
-    const graduationDate = req.body.graduationDate;
-    const userRole = req.body.role;
-    const selectedCourses = req.body.courses;
-    const sessionRole = req.session.role;
+    if (createType === "entity"){
+      const username = req.body.username;
+      const password = req.body.password;
+      const actualName = req.body.actualName;
+      const academicYear = req.body.academicYear;
+      const graduationDate = req.body.graduationDate;
+      const userRole = req.body.role;
+      const selectedCourses = req.body.courses;
+      const sessionRole = req.session.role;
 
-    if (sessionRole !== LoginType.Admin)
-      return res.status(401).json({error: "Insufficient permissions to create users!"});
+      if (sessionRole !== LoginType.Admin)
+        return res.status(401).json({error: "Insufficient permissions to create users!"});
 
-    if (!username || !password || !userRole)
-      return res.sendStatus(401);
+      if (!username || !password || !userRole)
+        return res.sendStatus(401);
 
-    if (!ROLES.includes(userRole))
-      return res.status(400).json({"error": "Invalid role was provided!"});
+      if (!ROLES.includes(userRole))
+        return res.status(400).json({"error": "Invalid role was provided!"});
 
-    if (!typeof username == "string" || !typeof password == "string")
-      return res.status(400).json({"error": "Username or password is not a string!"});
+      if (!typeof username == "string" || !typeof password == "string")
+        return res.status(400).json({"error": "Username or password is not a string!"});
 
-    if (username.length < 1 || username.length > 25)
-      return res.status(400).json({"error": `Username has invalid length ${username.length}: Must be between 1 and 25 characters`});
+      if (username.length < 1 || username.length > 25)
+        return res.status(400).json({"error": `Username has invalid length ${username.length}: Must be between 1 and 25 characters`});
 
-    if (password.length < 5 || password.length > 36)
-      return res.status(400).json({"error": `Password has invalid length ${password.length}: Must be between 5 and 36 characters`});
+      if (password.length < 5 || password.length > 36)
+        return res.status(400).json({"error": `Password has invalid length ${password.length}: Must be between 5 and 36 characters`});
 
-    const userQuery = await pool.query(`SELECT password_hash FROM ${userRole} WHERE username = $1`, [username]);
-    if (userQuery.rows.length >= 1)
-      return res.status(500).json({error: "An error occurred"});
+      const userQuery = await pool.query(`SELECT password_hash FROM ${userRole} WHERE username = $1`, [username]);
+      if (userQuery.rows.length >= 1)
+        return res.status(500).json({error: "An error occurred"});
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-    if (!hashedPassword)
-      return res.status(500).json({error: "An error occurred"});
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      if (!hashedPassword)
+        return res.status(500).json({error: "An error occurred"});
 
-    if (getUserType(userRole) === LoginType.Admin && selectedCourses.length > 0){
-      return res.status(500).json({error: "Admins cannot specify courses!"});
-    }
-
-    for (let i = 0; i < selectedCourses.length; i++) {
-      const courseQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [selectedCourses[i]]);
-      if (courseQuery.rows.length < 1)
-        return res.status(500).json({error: "Could not find course in the database!"});
-    }
-
-    let insertQuery;
-    if (getUserType(userRole) === LoginType.Student) {
-      insertQuery = await pool.query(
-          `INSERT INTO student (username, actualname, academic_year, expected_graduation, password_hash) VALUES ($1,$2,$3,$4,$5)`,
-          [username, actualName, academicYear, graduationDate, hashedPassword]
-      );
-
-      const id = await db.getIdFromUsername(username, LoginType.Student, pool);
-      if (!id) {
-        return res.status(500).json({error: "Could not obtain a corresponding student ID!"});
+      if (getUserType(userRole) === LoginType.Admin && selectedCourses.length > 0){
+        return res.status(500).json({error: "Admins cannot specify courses!"});
       }
 
       for (let i = 0; i < selectedCourses.length; i++) {
-        const courseQuery = await pool.query(
-          `INSERT INTO student_courses (student_id, course_id) VALUES ($1, $2)`,
-          [id, selectedCourses[i]]
+        const courseQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [selectedCourses[i]]);
+        if (courseQuery.rows.length < 1)
+          return res.status(500).json({error: "Could not find course in the database!"});
+      }
+
+      let insertQuery;
+      if (getUserType(userRole) === LoginType.Student) {
+        insertQuery = await pool.query(
+            `INSERT INTO student (username, actualname, academic_year, expected_graduation, password_hash) VALUES ($1,$2,$3,$4,$5)`,
+            [username, actualName, academicYear, graduationDate, hashedPassword]
         );
 
-        if (!courseQuery)
-          return res.status(500).json({error: "An error occurred while registering for the selected course(s)!"});
-      }
+        const id = await db.getIdFromUsername(username, LoginType.Student, pool);
+        if (!id) {
+          return res.status(500).json({error: "Could not obtain a corresponding student ID!"});
+        }
 
-    } else if (getUserType(userRole) === LoginType.Teacher) {
-      insertQuery = await pool.query(
-          `INSERT INTO teacher (username, actualname, password_hash) VALUES ($1,$2,$3)`,
-          [username, actualName, hashedPassword]
-      );
-
-      const id = await db.getIdFromUsername(username, LoginType.Teacher, pool);
-      if (!id) {
-        return res.status(500).json({error: "Could not obtain a corresponding teacher ID!"});
-      }
-
-      for (let i = 0; i < selectedCourses.length; i++) {
-        const courseQuery = await pool.query(
-            `INSERT INTO teacher_courses (teacher_id, course_id) VALUES ($1, $2)`,
+        for (let i = 0; i < selectedCourses.length; i++) {
+          const courseQuery = await pool.query(
+            `INSERT INTO student_courses (student_id, course_id) VALUES ($1, $2)`,
             [id, selectedCourses[i]]
           );
-  
+
           if (!courseQuery)
             return res.status(500).json({error: "An error occurred while registering for the selected course(s)!"});
+        }
+
+      } else if (getUserType(userRole) === LoginType.Teacher) {
+        insertQuery = await pool.query(
+            `INSERT INTO teacher (username, actualname, password_hash) VALUES ($1,$2,$3)`,
+            [username, actualName, hashedPassword]
+        );
+
+        const id = await db.getIdFromUsername(username, LoginType.Teacher, pool);
+        if (!id) {
+          return res.status(500).json({error: "Could not obtain a corresponding teacher ID!"});
+        }
+
+        for (let i = 0; i < selectedCourses.length; i++) {
+          const courseQuery = await pool.query(
+              `INSERT INTO teacher_courses (teacher_id, course_id) VALUES ($1, $2)`,
+              [id, selectedCourses[i]]
+            );
+  
+            if (!courseQuery)
+              return res.status(500).json({error: "An error occurred while registering for the selected course(s)!"});
+        }
+      } else {
+        insertQuery = await pool.query(
+            `INSERT INTO admin (username, actualname, password_hash) VALUES ($1,$2,$3)`,
+            [username, actualName, hashedPassword]
+        );
       }
-    } else {
-      insertQuery = await pool.query(
-          `INSERT INTO admin (username, actualname, password_hash) VALUES ($1,$2,$3)`,
-          [username, actualName, hashedPassword]
-      );
+
+      if (!insertQuery)
+        return res.status(500).json({error: "An error occurred while creating the user!"});
     }
 
-    if (!insertQuery)
-      return res.status(500).json({error: "An error occurred while creating the user!"});
-  } catch (error) {
+    } catch (error) {
     console.log(error);
     return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
   }
