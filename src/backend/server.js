@@ -216,18 +216,43 @@ app.post("/delete-course/:courseId", async (req, res) => {
 
 app.get("/course/:courseId", async (req, res) => {
   try {
-      const courseId = req.params.courseId;
-      const courseData = await pool.query('SELECT * FROM courses WHERE id = $1', [courseId]);
+    const courseId = req.params.courseId;
 
-      if (courseData.rows.length === 0) {
-          return res.status(404).send("Course not found");
-      }
+    // If no course specified, just show available course cards
+    // if (courseId === undefined) {
+    //     return res.render("course", );
+    // }
 
-      res.render("coursePage", {
-          course: courseData.rows[0],
-          username: req.session.username,
-          role: req.session.role
-      });
+    if (req.session.role === LoginType.Admin) {
+        return res.status(401).json({error: "Admin role cannot access courses!"});
+    }
+
+    const courseIdQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
+    if (!courseIdQuery) {
+        return res.status(500).json({"error": "Error checking if course is valid!"});
+    }
+
+    if (courseIdQuery.length <= 0) {
+        return res.status(400).json({"error": "Course does not exist!"});
+    }
+
+    const entityId = await db.getIdFromUsername(req.session.username, req.session.role);
+
+    const enrollmentQuery = await pool.query(`SELECT * FROM ${req.session.role} WHERE id = $1`, [entityId]);
+    if (!enrollmentQuery) {
+        return res.status(400).json({"error": "Invalid user!"});
+    }
+
+    if (enrollmentQuery.length <= 0) {
+        return res.status(400).json({"error": "User not enrolled in course!"});
+    }
+
+    const courseTabsQuery = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1`, [courseId]);
+    if (!courseTabsQuery) {
+        return res.status(500).json({"error": "Error checking for course tabs!"});
+    }
+
+    res.render("course", {username: req.session.username, role: req.session.role, courseTabs: courseTabsQuery.rows, courseId: courseIdQuery});
   } catch (error) {
       console.error(error);
       res.status(500).send("Error loading course page");
@@ -481,8 +506,6 @@ app.get("/course/:courseId", async (req, res) => {
     if (req.session.role === LoginType.Admin) {
         return res.status(401).json({error: "Admin role cannot access courses!"});
     }
-
-    console.log(courseId);
 
     const courseIdQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
     if (!courseIdQuery) {
