@@ -1,14 +1,30 @@
+<% /* Sidebar Menu EJS Template */ %>
 <aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64">
     <ul id="course-tabs">
         <% for (let i = 0; i < courseTabs.length; i++) { %>
-            <li class="menu-item mb-2">
-                <a href="#"><%=courseTabs[i].tab_name%></a>
+            <li class="menu-item mb-2 draggable-item p-2 cursor-pointer" data-id="<%= i %>">
+                <a href="/course/<%= courseId[0] %>/<%= courseTabs[i].id %>"><%= courseTabs[i].tab_name %></a>
             </li>
         <% } %>
         <% if (role === "teacher") { %>
             <li class="center items-center justify-center">
-                <%- include( 'create_coursetab' ) %>
+                <%- include('create_coursetab') %>
             </li>
-        <% }%>
+        <% } %>
     </ul>
 </aside>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var el = document.getElementById('course-tabs');
+        Sortable.create(el, {
+            animation: 150, // Animation speed (in ms)
+            ghostClass: 'bg-blue-100', // Class for the drop placeholder
+            dragClass: "opacity-50", // Class for the dragging item
+            onEnd: function (/**Event*/evt) {
+                // Optional: Handle the end of a drag event (e.g., updating the order)
+            },
+        });
+    });
+</script>
