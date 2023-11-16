@@ -3,12 +3,12 @@
 <dialog id="my_modal_2" class="modal">
   <div class="modal-box">
     <h3 class="font-bold text-lg">Add Course Tab</h3>
-    <p class="py-4">Press ESC key or click outside to close</p>
 
     <label class="label">
         <span class="label-text">Tab Name</span>
     </label>
-    <input id="tabname" type="text" placeholder="Tab" class="input input-bordered w-full" name="tabname" required>
+    <input id="tabname" value="<%= courseId %>" type="text" placeholder="Tab" class="input input-bordered w-full" name="tabname" required>
+    <button id="signup" type="submit" class="btn btn-primary w-full">Add</button>
 
   </div>
   <form method="dialog" class="modal-backdrop">
