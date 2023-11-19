@@ -3,7 +3,8 @@ const pg = require("pg");
 const path = require("path");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
-const ejs = require("ejs");
+const multer = require('multer');
+const fs = require('fs');
 
 const db = require("./scripts/database");
 const course = require("./scripts/course");
@@ -15,6 +16,10 @@ const SESSION_DURATION = 1200000;
 const HOSTNAME = "0.0.0.0";
 const PORT = process.env.PORT;
 const ROLES = ["admin", "teacher", "student"];
+
+//Have Multer use in-memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 app.set("view engine", "ejs");
 app.set('views', path.join(__dirname, 'templates'));
@@ -112,8 +117,6 @@ app.get("/home", async (req, res) => {
                 courses = classQuery.rows;
             }
       }
-
-      console.log(courses);
 
       return res.render("home", {
           username: req.session.username, 
@@ -215,21 +218,73 @@ app.post("/delete-course/:courseId", async (req, res) => {
   }
 });
 
-app.get("/course/:courseId", async (req, res) => {
+app.post("/upload/:type", upload.any(), async (req, res) => {
+  try {
+    const type = req.params.type;
+
+    if (!type || typeof type !== "string" || !["content", "submission"].includes(type)) {
+      return res.status(400).json({error: "Invalid upload type was specified!"});
+    }
+
+    const files = req.files;
+
+    if (type === "content") {
+      if (req.session.role !== LoginType.Teacher) {
+        return res.status(401).json({error: "Unauthorized"});
+      }
+
+      for (const file of files) {
+        //Create file
+        console.log([file.originalname, file.mimetype, file.size, file.buffer]);
+        const fileQuery = await pool.query(`INSERT INTO files (file_name, file_type, file_size, file_data) VALUES ($1,$2,$3,$4) RETURNING id`, [file.originalname, file.mimetype, file.size, file.buffer]);
+        console.log(fileQuery);
+        if (!fileQuery || !fileQuery.rows || fileQuery.rows.length == 0) {
+          return res.status(500).json({error: "Failed to insert uploaded file(s)!"});
+        }
+
+        const fileId = fileQuery.rows[0].id;
+
+        console.log(fileId);
+      }
+
+      return res.end();
+    }
+
+    if (req.session.role !== LoginType.Student) {
+      return res.status(401).json({error: "Unauthorized"});
+    }
+
+    for (const file of files) {
+      const fileBuffer = fs.readFileSync(file.path);
+      const query = 'INSERT INTO files(file_name, file_data) VALUES($1, $2)';
+      const values = [file.originalname, fileBuffer];
+      await pool.query(query, values);
+    }
+  } catch (error) {
+    return res.status(500).json({error: error});
+  }
+});
+
+app.get("/course/:courseId/:courseTab?", async (req, res) => {
   try {
     const courseId = req.params.courseId;
+    const courseTabId = req.params.courseTab;
 
     if (req.session.role === LoginType.Admin) {
-        return res.status(401).json({error: "Admin role cannot access courses!"});
+      return res.status(401).json({error: "Admin role cannot access courses!"});
     }
 
     const courseIdQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
     if (!courseIdQuery) {
-        return res.status(500).json({"error": "Error checking if course is valid!"});
+      return res.status(500).json({"error": "Error checking if course is valid!"});
     }
 
     if (courseIdQuery.length <= 0) {
-        return res.status(400).json({"error": "Course does not exist!"});
+      return res.status(400).json({"error": "Course does not exist!"});
+    }
+
+    if (courseTabId && !db.isCourseTabInValidCourse(courseTabId, courseId, pool)) {
+      return res.status(500).json({"error": "Course tab does not exist in course!"});
     }
 
     const entityId = await db.getIdFromUsername(req.session.username, req.session.role);
@@ -246,6 +301,17 @@ app.get("/course/:courseId", async (req, res) => {
     const courseTabsQuery = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1 ORDER BY order_id;`, [courseId]);
     if (!courseTabsQuery) {
         return res.status(500).json({"error": "Error checking for course tabs!"});
+    }
+
+    //If we've specified a coursetab ID, render the coursetab page instead
+    if (courseTabId) {
+      return res.render("course/content_area", {
+        username: req.session.username,
+        role: req.session.role,
+        courseTabId: courseTabId,
+        courseId: courseId,
+        courseTabs: courseTabsQuery.rows
+      });
     }
 
     res.render("course/course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
