@@ -48,14 +48,29 @@ CREATE TABLE course_modules (
         visibility BOOLEAN
 );
 
+CREATE TABLE files (
+    id SERIAL PRIMARY KEY,
+    file_name VARCHAR(255) NOT NULL,
+    file_type VARCHAR(50),
+    file_size INTEGER,
+    file_data BYTEA NOT NULL
+);
+
 CREATE TABLE assignments (
         id SERIAL PRIMARY KEY,
-        tab_id INTEGER REFERENCES course_tabs(id) ON DELETE SET NULL,
+        module_id INTEGER REFERENCES course_modules(id) ON DELETE SET NULL,
         title TEXT,
         description TEXT,
         due_date DATE,
         total_points INT,
         visibility BOOLEAN
+);
+
+-- Junction take for linking attached files to an assignment
+CREATE TABLE assignment_files (
+    assignment_id INTEGER REFERENCES assignments(id) ON DELETE CASCADE,
+    file_id INTEGER REFERENCES files(id) ON DELETE CASCADE,
+    PRIMARY KEY (assignment_id, file_id)
 );
 
 CREATE TABLE submissions (
