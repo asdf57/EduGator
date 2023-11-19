@@ -96,7 +96,7 @@ app.get("/home", async (req, res) => {
 
             const classQuery = await pool.query(`
                 SELECT 
-                ${req.session.role}_courses.id,
+                ${req.session.role}_courses.course_id,
                 ${req.session.role}_courses.${req.session.role}_id,
                 courses.course_name,
                 courses.description,
@@ -113,6 +113,8 @@ app.get("/home", async (req, res) => {
             }
       }
 
+      console.log(courses);
+
       return res.render("home", {
           username: req.session.username, 
           role: req.session.role, 
@@ -123,7 +125,6 @@ app.get("/home", async (req, res) => {
       res.status(500).json("Error loading page");
   }
 });
-
 
 app.get("/login", async (req, res) => {
   if (req.session.isAuthenticated) {
@@ -162,7 +163,7 @@ app.get("/createCourse", (req, res) => {
   if (req.session.role !== "admin") {
     return res.redirect('/login');
   }
-  res.render("createCourse", {
+  res.render("course/create_course", {
     username: req.session.username,
     role: req.session.role
   });
@@ -218,11 +219,6 @@ app.get("/course/:courseId", async (req, res) => {
   try {
     const courseId = req.params.courseId;
 
-    // If no course specified, just show available course cards
-    // if (courseId === undefined) {
-    //     return res.render("course", );
-    // }
-
     if (req.session.role === LoginType.Admin) {
         return res.status(401).json({error: "Admin role cannot access courses!"});
     }
@@ -252,7 +248,7 @@ app.get("/course/:courseId", async (req, res) => {
         return res.status(500).json({"error": "Error checking for course tabs!"});
     }
 
-    res.render("course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
+    res.render("course/course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
   } catch (error) {
       console.error(error);
       res.status(500).send("Error loading course page");
@@ -333,6 +329,7 @@ app.post("/delete", async (req, res) => {
 });
 
 async function createCourseTab(req, res) {
+  try {
     const tabName = req.body.tabName;
     const courseId = req.body.courseId;
 
@@ -351,12 +348,15 @@ async function createCourseTab(req, res) {
     if (!addCourseTabQuery) {
         return res.status(500).json({error: "Failed to add course tab!"});
     }
+  } catch (error) {
+    return res.status(500).json({error: error});
+  }
 }
 
 app.post("/update/coursetab/:item", async (req, res) => {
   try {
     const item = req.params.item;
-  
+
     if (!item || typeof item !== "string") {
       return res.status(400).json({error: "Item specified is invalid!"});
     }
