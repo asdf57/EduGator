@@ -40,5 +40,6 @@ async function isCourseInDatabase(id, pool) {
 
 module.exports = {
     getIdFromUsername,
-    getAllEntriesFromRole
+    getAllEntriesFromRole,
+    isCourseInDatabase
 };
