@@ -252,7 +252,7 @@ app.get("/course/:courseId", async (req, res) => {
         return res.status(500).json({"error": "Error checking for course tabs!"});
     }
 
-    res.render("course", {username: req.session.username, role: req.session.role, courseTabs: courseTabsQuery.rows, courseId: courseIdQuery});
+    res.render("course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
   } catch (error) {
       console.error(error);
       res.status(500).send("Error loading course page");
@@ -336,6 +336,9 @@ async function createCourseTab(req, res) {
     const tabName = req.body.tabName;
     const courseId = req.body.courseId;
 
+    console.log(tabName);
+    console.log(courseId);
+
     if (req.session.role !== LoginType.Teacher)
       return res.status(401).json({error: "Insufficient permissions to add course tab!"});
 
@@ -347,11 +350,53 @@ async function createCourseTab(req, res) {
     if (!courseIdQuery)
         return res.status(500).json({error: "Couldn't find course!"});
 
-    const addCourseTabQuery = await pool.query(`INSERT INTO course_tabs (tab_name, course_id, visibility) VALUES ($1, $2, $3)`, [tabName, courseId]);
+    const addCourseTabQuery = await pool.query(`INSERT INTO course_tabs (tab_name, course_id, visibility) VALUES ($1, $2, $3)`, [tabName, courseId, true]);
     if (!addCourseTabQuery) {
         return res.status(500).json({error: "Failed to add course tab!"});
     }
 }
+
+app.post("/update/coursetab/:item", async (req, res) => {
+  try {
+    const item = req.params.item;
+  
+    if (!item || typeof item !== "string") {
+      return res.status(400).json({error: "Item specified is invalid!"});
+    }
+
+    if (item === "order") {
+      const order = req.body.order;
+      const courseId = req.body.courseId;
+
+      if (!order || typeof order !== "object") {
+        return res.status(400).json({error: "Invalid coursetab ordering sent!"});
+      }
+
+      if(!courseId || typeof courseId !== "string") {
+        return res.status(400).json({error: "Invalid courseId value sent!"});
+      }
+
+      const isCourseIdValid = db.isCourseInDatabase(courseId, pool);
+
+      if (!isCourseIdValid) {
+        return res.status(400).json({error: "Course does not exist!"});
+      }
+
+      Object.entries(order).forEach(async ([courseTabId, value]) => {
+        const updateOrderQuery = await pool.query(`UPDATE course_tabs SET order_id = $1 WHERE id = $2`, [order[i], courseTabId]);
+      });
+      
+
+      for (let i = 0; i < order.length; i++) {
+        
+      }
+
+    }
+
+  } catch (error) {
+    return res.status(500).json({error: error});
+  }
+});
 
 app.post("/create/:type", async (req, res) => {
   try {
@@ -497,47 +542,6 @@ app.post("/login", async (req, res) => {
     return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
   }
 });
-
-app.get("/course/:courseId", async (req, res) => {
-    const courseId = req.params.courseId;
-
-    // If no course specified, just show available course cards
-    // if (courseId === undefined) {
-    //     return res.render("course", );
-    // }
-
-    if (req.session.role === LoginType.Admin) {
-        return res.status(401).json({error: "Admin role cannot access courses!"});
-    }
-
-    const courseIdQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
-    if (!courseIdQuery) {
-        return res.status(500).json({"error": "Error checking if course is valid!"});
-    }
-
-    if (courseIdQuery.length <= 0) {
-        return res.status(400).json({"error": "Course does not exist!"});
-    }
-
-    const entityId = await db.getIdFromUsername(req.session.username, req.session.role);
-
-    const enrollmentQuery = await pool.query(`SELECT * FROM ${req.session.role} WHERE id = $1`, [entityId]);
-    if (!enrollmentQuery) {
-        return res.status(400).json({"error": "Invalid user!"});
-    }
-
-    if (enrollmentQuery.length <= 0) {
-        return res.status(400).json({"error": "User not enrolled in course!"});
-    }
-
-    const courseTabsQuery = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1`, [courseId]);
-    if (!courseTabsQuery) {
-        return res.status(500).json({"error": "Error checking for course tabs!"});
-    }
-
-    res.render("course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
-});
-
 
 app.listen(PORT, HOSTNAME, () => {
   console.log(`http://${HOSTNAME}:${PORT}`);
