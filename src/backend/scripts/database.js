@@ -25,6 +25,17 @@ async function getAllEntriesFromRole(pool, role) {
     }
 }
 
+async function isCourseInDatabase(id, pool) {
+    try {
+        const query = await pool.query(`SELECT * FROM courses WHERE id = $1`, [id]);
+        if (query.rows.length < 1 || !query)
+            return false
+
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
 
 
 module.exports = {
