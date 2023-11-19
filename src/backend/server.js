@@ -247,7 +247,7 @@ app.get("/course/:courseId", async (req, res) => {
         return res.status(400).json({"error": "User not enrolled in course!"});
     }
 
-    const courseTabsQuery = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1`, [courseId]);
+    const courseTabsQuery = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1 ORDER BY order_id;`, [courseId]);
     if (!courseTabsQuery) {
         return res.status(500).json({"error": "Error checking for course tabs!"});
     }
@@ -336,9 +336,6 @@ async function createCourseTab(req, res) {
     const tabName = req.body.tabName;
     const courseId = req.body.courseId;
 
-    console.log(tabName);
-    console.log(courseId);
-
     if (req.session.role !== LoginType.Teacher)
       return res.status(401).json({error: "Insufficient permissions to add course tab!"});
 
@@ -382,17 +379,15 @@ app.post("/update/coursetab/:item", async (req, res) => {
         return res.status(400).json({error: "Course does not exist!"});
       }
 
-      Object.entries(order).forEach(async ([courseTabId, value]) => {
-        const updateOrderQuery = await pool.query(`UPDATE course_tabs SET order_id = $1 WHERE id = $2`, [order[i], courseTabId]);
+      Object.entries(order).forEach(async ([courseTabId, order_id]) => {
+        const updateOrderQuery = await pool.query(`UPDATE course_tabs SET order_id=$1 WHERE id=$2 AND course_id=$3; `, [order_id, courseTabId, courseId]);
+        if (!updateOrderQuery) {
+          return res.status(500).json({error: "Failed to update course tab order!"});
+        }
       });
-      
 
-      for (let i = 0; i < order.length; i++) {
-        
-      }
-
+      return res.send();
     }
-
   } catch (error) {
     return res.status(500).json({error: error});
   }
@@ -501,13 +496,14 @@ app.post("/create/:type", async (req, res) => {
         );
       }
 
-      if (!insertQuery)
+      if (!insertQuery) {
         return res.status(500).json({error: "An error occurred while creating the user!"});
+      }
     }
 
     } catch (error) {
-    console.log(error);
-    return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
+      console.log(error);
+      return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
   }
 });
 
