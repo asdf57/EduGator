@@ -35,6 +35,7 @@ CREATE TABLE course_tabs (
         id SERIAL PRIMARY KEY,
         tab_name VARCHAR(255) NOT NULL,
         course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL,
+        order_id INTEGER,
         visibility BOOLEAN
 );
 
