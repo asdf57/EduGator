@@ -14,7 +14,7 @@
     <label class="label">
         <span class="label-text">Module Description</span>
     </label>
-    <textarea id="module-description" class="textarea textarea-bordered w-full"></textarea>
+    <div id="module-description" class="textarea textarea-bordered w-full"></div>
 
     <!-- Enable submissions input -->
     <label class="label">
@@ -70,6 +70,7 @@
 </dialog>
 
 <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
 <!-- Course Content Creation Modal Logic -->
 <script>
@@ -81,6 +82,10 @@
     const addAssignmentToggle = document.getElementById("add-assignment-input");
     const assignmentDueDate = document.getElementById("assn-due-date");
     const assignmentPoints = document.getElementById("assn-points");
+
+    const quill = new Quill('#module-description', {
+        theme: 'snow'  // Specify theme
+    });
 
     let hasAssignment = false;
 
@@ -107,8 +112,8 @@
             },
             body: JSON.stringify({
                 title: contentModuleTitle.value,
-                description: contentModuleDesc.value,
-                enableSubmissions: enableSubmissions.value,
+                description: quill.root.innerHTML,
+                enableSubmissions: enableSubmissions.checked,
                 hasAssignment: hasAssignment,
                 dueDate: assignmentDueDate.value,
                 points: assignmentPoints.value,

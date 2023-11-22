@@ -23,7 +23,9 @@
                   <li coursemoduleid="<%= courseModules[i].id %>" class="module-item hover:bg-gray-50 menu-item mb-2 draggable-item p-2 cursor-pointer">
                     <div class="p-4">
                       <h3 class="text-xl font-semibold pb-5"><%= courseModules[i].title %></h3>
-                      <p><%= courseModules[i].description %></p>
+                      <div class="ql-editor course-module-description">
+                        <%- courseModules[i].description %>
+                        </div>
                       <% if(Object.keys(courseModules[i].files).length > 0) { %>
                         <div class="pt-2">
                           Attached files:
@@ -38,7 +40,7 @@
                             <% }); %>
                           </ul>
                         </div>
-                      <% } %>
+                        <% } %>
                     </div>
                   </li>
                 <% } %>
