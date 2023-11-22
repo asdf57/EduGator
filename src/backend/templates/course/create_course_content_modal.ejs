@@ -164,6 +164,7 @@
                         // If no files, directly create course module
                         await createCourseModule({});
                         closeModal();
+                        window.location.reload();
                     }
                 });
 
@@ -178,6 +179,7 @@
                     //Create the course module/assignment
                     createCourseModule(fileIds);
                     closeModal();
+                    window.location.reload();
                 });
             }
         };
