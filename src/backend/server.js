@@ -233,21 +233,22 @@ app.post("/upload/:type", upload.any(), async (req, res) => {
         return res.status(401).json({error: "Unauthorized"});
       }
 
+      const fileIdRes = {}
+
       for (const file of files) {
         //Create file
-        console.log([file.originalname, file.mimetype, file.size, file.buffer]);
         const fileQuery = await pool.query(`INSERT INTO files (file_name, file_type, file_size, file_data) VALUES ($1,$2,$3,$4) RETURNING id`, [file.originalname, file.mimetype, file.size, file.buffer]);
-        console.log(fileQuery);
+
         if (!fileQuery || !fileQuery.rows || fileQuery.rows.length == 0) {
           return res.status(500).json({error: "Failed to insert uploaded file(s)!"});
         }
 
         const fileId = fileQuery.rows[0].id;
-
         console.log(fileId);
+        fileIdRes[file.originalname] = fileId;
       }
 
-      return res.end();
+      return res.json(fileIdRes);
     }
 
     if (req.session.role !== LoginType.Student) {
@@ -274,6 +275,7 @@ app.get("/course/:courseId/:courseTab?", async (req, res) => {
       return res.status(401).json({error: "Admin role cannot access courses!"});
     }
 
+    //Get the course information
     const courseIdQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
     if (!courseIdQuery) {
       return res.status(500).json({"error": "Error checking if course is valid!"});
@@ -287,8 +289,10 @@ app.get("/course/:courseId/:courseTab?", async (req, res) => {
       return res.status(500).json({"error": "Course tab does not exist in course!"});
     }
 
+    //Get the ID from the username
     const entityId = await db.getIdFromUsername(req.session.username, req.session.role);
 
+    //Check that the user exists!
     const enrollmentQuery = await pool.query(`SELECT * FROM ${req.session.role} WHERE id = $1`, [entityId]);
     if (!enrollmentQuery) {
         return res.status(400).json({"error": "Invalid user!"});
@@ -298,19 +302,29 @@ app.get("/course/:courseId/:courseTab?", async (req, res) => {
         return res.status(400).json({"error": "User not enrolled in course!"});
     }
 
+    //Obtain all course tabs for the selected course to display in the course sidebar
     const courseTabsQuery = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1 ORDER BY order_id;`, [courseId]);
     if (!courseTabsQuery) {
         return res.status(500).json({"error": "Error checking for course tabs!"});
     }
 
+    //Get the course modules under the current selected course tab
+    const courseModules = await db.getCourseModulesFromTab(pool, courseTabId);
+
+    //Shortcut to obtain info on the selected course tab
+    const courseTab = courseTabsQuery.rows.find(item => item.id == courseTabId);
+
     //If we've specified a coursetab ID, render the coursetab page instead
     if (courseTabId) {
+
       return res.render("course/content_area", {
         username: req.session.username,
         role: req.session.role,
         courseTabId: courseTabId,
         courseId: courseId,
-        courseTabs: courseTabsQuery.rows
+        courseTabs: courseTabsQuery.rows,
+        courseModules: courseModules,
+        courseTab: courseTab
       });
     }
 
@@ -350,6 +364,24 @@ app.get("/delete", async (req, res) => {
         console.log(`Error in create route: ${error}`);
         return res.status(500).send("Unexpected error occurred. Please try again later!");
     }
+});
+
+app.post("/delete/file", async (req, res) => {
+  try {
+    const fileId = req.body.fileid;
+
+    if (!fileId) {
+      return res.status(500).json({error: "File name of file to delete is invalid!"});
+    }
+
+    if (!await db.isFileInDatabase(fileId, pool)) {
+      return res.status(500).json({error: "File doesn't exist in database!"});
+    }
+
+    await pg.query(`DELETE FROM files WHERE id = $1`, [fileId]);
+  } catch (error) {
+    return res.status(500).json({error: error});
+  }
 });
 
 app.post("/delete", async (req, res) => {
@@ -419,6 +451,27 @@ async function createCourseTab(req, res) {
   }
 }
 
+async function createCourseModule(req, res) {
+  const courseTabId = req.body.courseTabId;
+
+  //create course module
+  const courseModuleId = await db.createCourseModule(req.body, pool);
+  console.log("courseModuleId: ", courseModuleId);
+
+  //Associate the newly created course module with course tab (if specified)
+  if (courseModuleId && courseTabId) {
+    //Validate courseTabId
+    if (await db.isCourseTabInDatabase(courseTabId, pool) === undefined) {
+      return res.status(500).json({error: "Course tab does not exist in database!"});
+    }
+
+    await db.associateCourseTabAndModule(pool, courseTabId, courseModuleId);
+  }
+
+  //create assignment in course module (if required)
+  return res.end();
+}
+
 app.post("/update/coursetab/:item", async (req, res) => {
   try {
     const item = req.params.item;
@@ -465,6 +518,10 @@ app.post("/create/:type", async (req, res) => {
 
     if (createType === "coursetab") {
         return await createCourseTab(req, res);
+    }
+
+    if (createType === "coursemodule") {
+      return await createCourseModule(req, res);
     }
 
     if (createType === "entity"){
