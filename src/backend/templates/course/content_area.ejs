@@ -20,11 +20,11 @@
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
               <ul id="content-items" class="divide-y divide-gray-200">
                 <% for (let i = 0; i < courseModules.length; i++) { %>
-                  <li class="hover:bg-gray-50 menu-item mb-2 draggable-item p-2 cursor-pointer">
+                  <li coursemoduleid="<%= courseModules[i].id %>" class="module-item hover:bg-gray-50 menu-item mb-2 draggable-item p-2 cursor-pointer">
                     <div class="p-4">
                       <h3 class="text-xl font-semibold pb-5"><%= courseModules[i].title %></h3>
                       <p><%= courseModules[i].description %></p>
-                      <% if(courseModules[i].files) { %>
+                      <% if(Object.keys(courseModules[i].files).length > 0) { %>
                         <div class="pt-2">
                           Attached files:
                           <ul class="list-inside list-none">
@@ -62,18 +62,17 @@
 <script>
     //Event listener for moving content areas around
     document.addEventListener('DOMContentLoaded', () => {
-        const courseTabsUl = document.getElementById('course-tabs');
-        Sortable.create(courseTabsUl, {
+        const modules = document.getElementById('content-items');
+        Sortable.create(modules, {
             animation: 150,
             ghostClass: 'bg-blue-100',
-            dragClass: "opacity-50",
+            dragClass: "opacity-100",
             onEnd: async (event) => {
                 let itemOrder = {};
-                const items = courseTabsUl.getElementsByTagName('li');
-                const courseId = courseTabsUl.getAttribute("courseid");
+                const items = modules.getElementsByClassName("module-item");
 
                 for (var i = 0; i < items.length; i++) {
-                    const databaseId = items[i].getAttribute("id");
+                    const databaseId = items[i].getAttribute("coursemoduleid");
                     itemOrder[databaseId] = i;
                 }
 
@@ -84,7 +83,7 @@
                     },
                     body: JSON.stringify({
                         "order": itemOrder,
-                        "courseId": courseId
+                        "courseTabId": "<%= courseTabId %>"
                     })
                 });
             },
