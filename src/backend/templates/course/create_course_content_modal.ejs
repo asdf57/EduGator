@@ -97,78 +97,86 @@
         }
     });
 
-    // Dropzone.js Configuration
-    Dropzone.options.myDropzone = {
-        paramName: "file",
-        maxFilesize: 20,
-        addRemoveLinks: true,
-        uploadMultiple: true,
-        parallelUploads: 100,
-        maxFiles: 100,
-        autoProcessQueue: false,
-        init: function() {
-            let fileIds = {};
 
-            createContentBtn.addEventListener("click", async () => {
-                fileIds = {};
-                //Send uploaded files to server before assignment is created
-                this.processQueue();
-            });
+    async function createCourseModule(fileIds) {
+        const courseId = "<%= courseId %>";
+        const payload = await fetch("/create/coursemodule", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                title: contentModuleTitle.value,
+                description: contentModuleDesc.value,
+                enableSubmissions: enableSubmissions.value,
+                hasAssignment: hasAssignment,
+                dueDate: assignmentDueDate.value,
+                points: assignmentPoints.value,
+                attachedFileIds: fileIds,
+                courseTabId: "<%= courseTabId %>"
+            })
+        });
 
-            this.on("success", function(file, response) {
-                // Store response for file IDs
-                fileIds = response;
-            });
-
-            this.on("queuecomplete", async function() {
-                this.removeAllFiles();
-
-                console.log({
-                    title: contentModuleTitle.value,
-                    description: contentModuleDesc.value,
-                    enableSubmissions: enableSubmissions.value,
-                    hasAssignment: hasAssignment,
-                    dueDate: assignmentDueDate.value,
-                    points: assignmentPoints.value,
-                    attachedFileIds: fileIds,
-                });
-
-                //Create the course module/assignment
-                const courseId = "<%= courseId %>";
-                const payload = await fetch("/create/coursemodule", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        title: contentModuleTitle.value,
-                        description: contentModuleDesc.value,
-                        enableSubmissions: enableSubmissions.value,
-                        hasAssignment: hasAssignment,
-                        dueDate: assignmentDueDate.value,
-                        points: assignmentPoints.value,
-                        attachedFileIds: fileIds,
-                        courseTabId: "<%= courseTabId %>"
-                    })
-                });
-
-                if (!payload.ok) {
-                    throw Exception;
-                }
-
-                // Close the modal
-                contentModal.close();
-
-                // Reset input fields
-                contentModuleTitle.value = '';
-                contentModuleDesc.value = '';
-                enableSubmissions.checked = false;
-                addAssignmentToggle.checked = false;
-                assignmentDueDate.value = '';
-                assignmentPoints.value = '';
-                assignmentDueDate.classList.add("hidden");
-                assignmentPoints.classList.add("hidden");
-            });
+        if (!payload.ok) {
+            throw Exception;
         }
-    };
+    }
+
+    function closeModal() {
+        // Close the modal
+        contentModal.close();
+
+        // Reset input fields
+        contentModuleTitle.value = '';
+        contentModuleDesc.value = '';
+        enableSubmissions.checked = false;
+        addAssignmentToggle.checked = false;
+        assignmentDueDate.value = '';
+        assignmentPoints.value = '';
+        assignmentDueDate.classList.add("hidden");
+        assignmentPoints.classList.add("hidden");
+    }
+
+    try {
+        // Dropzone.js Configuration
+        Dropzone.options.myDropzone = {
+            paramName: "file",
+            maxFilesize: 20,
+            addRemoveLinks: true,
+            uploadMultiple: true,
+            parallelUploads: 100,
+            maxFiles: 100,
+            autoProcessQueue: false,
+            init: function() {
+                let fileIds = {};
+
+                createContentBtn.addEventListener("click", async () => {
+                    fileIds = {};
+                    if (this.getQueuedFiles().length > 0) {
+                        // If there are files in the queue, process them
+                        this.processQueue();
+                    } else {
+                        // If no files, directly create course module
+                        await createCourseModule({});
+                        closeModal();
+                    }
+                });
+
+                this.on("success", function(file, response) {
+                    // Store response for file IDs
+                    fileIds = response;
+                });
+
+                this.on("queuecomplete", async function() {
+                    this.removeAllFiles();
+
+                    //Create the course module/assignment
+                    createCourseModule(fileIds);
+                    closeModal();
+                });
+            }
+        };
+    } catch (error) {
+        console.log(`Failed to create course module: ${error}`);
+    }
 </script>
