@@ -25,6 +25,26 @@ async function getAllEntriesFromRole(pool, role) {
     }
 }
 
+async function associateCourseTabAndModule(pool, courseTabId, courseModuleId) {
+    try {
+        await pool.query(`INSERT INTO tab_course_module (tab_id, course_module_id) VALUES ($1, $2)`, [courseTabId, courseModuleId]);
+    } catch (error) {
+        console.log(`Error while associating course tab and module: ${error}`);
+    }
+}
+
+async function isFileInDatabase(id, pool) {
+    try {
+        const query = await pool.query(`SELECT * FROM files WHERE id = $1`, [id]);
+        if (query.rows.length < 1 || !query)
+            return false
+
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 async function isCourseInDatabase(id, pool) {
     try {
         const query = await pool.query(`SELECT * FROM courses WHERE id = $1`, [id]);
@@ -40,8 +60,9 @@ async function isCourseInDatabase(id, pool) {
 async function isCourseTabInValidCourse(courseTabId, courseId, pool) {
     try {
         const query = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1 AND id = $2`, [courseId, courseTabId]);
-        if (query.rows.length < 1 || !query)
-            return false
+        if (!query || !query.rows || query.rows.length == 0) {
+            return false;
+        }
 
         return true;
     } catch (error) {
@@ -49,10 +70,105 @@ async function isCourseTabInValidCourse(courseTabId, courseId, pool) {
     }
 }
 
+async function isCourseTabInDatabase(courseTabId, pool) {
+    try {
+        const query = await pool.query(`SELECT * FROM course_tabs WHERE id = $1`, [courseTabId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function getCourseModulesFromTab(pool, courseTabId) {
+    try {
+        const moduleQuery = await pool.query(`
+            SELECT * FROM course_modules 
+            WHERE id IN (
+                SELECT course_module_id FROM tab_course_module WHERE tab_id = $1
+            );`, 
+            [courseTabId]
+        );
+
+        if (!moduleQuery || !moduleQuery.rows || moduleQuery.rows.length === 0) {
+            return [];
+        }
+
+        const modules = moduleQuery.rows;
+
+        // Fetch and attach files for each module
+        for (const module of modules) {
+            const fileQuery = await pool.query(`
+                SELECT f.file_name, f.file_type, f.file_size 
+                FROM files AS f 
+                JOIN course_module_files AS cmf ON f.id = cmf.file_id 
+                WHERE cmf.course_module_id = $1;`, 
+                [module.id]
+            );
+
+            console.log("Got files: ", fileQuery.rows)
+
+            module.files = fileQuery.rows;
+        }
+
+        return modules;
+    } catch (error) {
+        console.log(`Error while getting course modules from course tab: ${error}`);
+        return [];
+    }
+}
+
+
+async function createCourseModule(courseModulePayload, pool) {
+    try {
+        const { title, description, enableSubmissions, hasAssignment, dueDate, points, attachedFileIds }  = courseModulePayload;
+
+        if ([title, description, enableSubmissions, hasAssignment, attachedFileIds].includes(undefined)) {
+            return undefined;
+        }
+
+        //Create the course module
+        const idQuery = await pool.query(`INSERT INTO course_modules (title, description, visibility) VALUES ($1, $2, $3) RETURNING id`, [title, description, true]);
+
+        if (!idQuery || !idQuery.rows || idQuery.rows.length == 0) {
+            return undefined;
+        }
+
+        //Attach files to course module
+        if (Object.keys(attachedFileIds).length > 0) {
+            for (const fileId of Object.values(attachedFileIds)) {
+                await pool.query(`INSERT INTO course_module_files (course_module_id, file_id) VALUES ($1, $2)`, [idQuery.rows[0].id, fileId]);
+            }
+        }
+
+        if (hasAssignment) {
+            if ([dueDate, points].includes(undefined)) {
+                return undefined;
+            }
+
+            await pool.query(`INSERT INTO assignments (module_id, due_date, total_points) VALUES ($1, $2, $3) RETURN id`, [idQuery.rows[0].id, due_date, total_points]);
+        }
+
+        return idQuery.rows[0].id;
+    } catch (error) {
+        console.log(error);
+        return undefined;
+    }
+
+}
+
 
 module.exports = {
     getIdFromUsername,
     getAllEntriesFromRole,
     isCourseInDatabase,
-    isCourseTabInValidCourse
+    isCourseTabInValidCourse,
+    isFileInDatabase,
+    isCourseTabInDatabase,
+    createCourseModule,
+    associateCourseTabAndModule,
+    getCourseModulesFromTab
 };
