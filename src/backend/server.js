@@ -462,7 +462,7 @@ async function createCourseModule(req, res) {
   //Associate the newly created course module with course tab (if specified)
   if (courseModuleId && courseTabId) {
     //Validate courseTabId
-    if (await db.isCourseTabInDatabase(courseTabId, pool) === undefined) {
+    if (await db.isCourseTabInDatabase(pool, courseTabId) === undefined) {
       return res.status(500).json({error: "Course tab does not exist in database!"});
     }
 
@@ -473,15 +473,48 @@ async function createCourseModule(req, res) {
   return res.end();
 }
 
-app.post("/update/coursetab/:item", async (req, res) => {
+app.post("/update/:entity/:type", async (req, res) => {
   try {
-    const item = req.params.item;
+    const entity = req.params.entity;
+    const type = req.params.type;
 
-    if (!item || typeof item !== "string") {
-      return res.status(400).json({error: "Item specified is invalid!"});
+    if (!entity || !type) {
+      return res.status(400).json({error: "Missing a required item for update!"});
     }
 
-    if (item === "order") {
+    if (typeof entity !== "string" || typeof type !== "string") {
+      return res.status(400).json({error: "Item is invalid!"});
+    }
+
+    if (entity === "coursemodule" && type === "order") {
+      const order = req.body.order;
+      const courseTabId = req.body.courseTabId;
+
+      if (!order || typeof order !== "object") {
+        return res.status(400).json({error: "Invalid coursetab ordering sent!"});
+      }
+
+      if(!courseTabId || typeof courseTabId !== "string") {
+        return res.status(400).json({error: "Invalid courseTabId value sent!"});
+      }
+
+      const isCourseTabIdValid = db.isCourseTabInDatabase(pool, courseTabId);
+
+      if (!isCourseTabIdValid) {
+        return res.status(400).json({error: "Course tab does not exist!"});
+      }
+
+      Object.entries(order).forEach(async ([courseModuleId, orderId]) => {
+        const updateOrderQuery = await pool.query(`UPDATE course_modules SET order_id=$1 WHERE id=$2 AND course_id=$3; `, [orderId, courseModuleId, courseId]);
+        if (!updateOrderQuery) {
+          return res.status(500).json({error: "Failed to update course tab order!"});
+        }
+      });
+
+      return res.send();
+    }
+
+    if (entity === "coursetab" && type === "order") {
       const order = req.body.order;
       const courseId = req.body.courseId;
 
@@ -507,6 +540,22 @@ app.post("/update/coursetab/:item", async (req, res) => {
       });
 
       return res.send();
+    }
+  } catch (error) {
+    return res.status(500).json({error: error});
+  }
+});
+
+app.post("/update/coursetab/:item", async (req, res) => {
+  try {
+    const item = req.params.item;
+
+    if (!item || typeof item !== "string") {
+      return res.status(400).json({error: "Item specified is invalid!"});
+    }
+
+    if (item === "order") {
+      
     }
   } catch (error) {
     return res.status(500).json({error: error});
