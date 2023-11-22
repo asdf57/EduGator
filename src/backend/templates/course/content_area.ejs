@@ -47,6 +47,19 @@
                                   <% }); %>
                               </ul>
                             </div>
+                          <% } %>
+                          <% if(Object.keys(courseModules[i].assignment).length> 0) { %>
+                            <div class="pt-2">
+                              Assignment:
+                              <ul class="list-inside list-none">
+                                <% courseModules[i].assignment.forEach(function(assignment) { %>
+                                  <li>
+                                    <%= assignment.due_date %>
+                                    <%= assignment.total_points %>
+                                  </li>
+                                  <% }); %>
+                              </ul>
+                            </div>
                             <% } %>
                         </div>
                       </div>
