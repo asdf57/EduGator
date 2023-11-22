@@ -16,33 +16,40 @@
             <h1 class="text-3xl mb-5 font-semibold">
               <%= courseTab.tab_name %>
             </h1>
-          
+
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
               <ul id="content-items" class="divide-y divide-gray-200">
                 <% for (let i = 0; i < courseModules.length; i++) { %>
                   <li coursemoduleid="<%= courseModules[i].id %>" class="module-item hover:bg-gray-50 menu-item mb-2 draggable-item p-2 cursor-pointer">
-                    <div class="p-4">
-                      <h3 class="text-xl font-semibold pb-5"><%= courseModules[i].title %></h3>
-                      <div class="ql-editor course-module-description">
-                        <%- courseModules[i].description %>
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="p-4">
+                          <h3 class="text-xl font-semibold pb-5"><%= courseModules[i].title %></h3>
+                          <div class="course-module-description">
+                            <%- courseModules[i].description %>
+                          </div>
+                          <% if(Object.keys(courseModules[i].files).length > 0) { %>
+                            <div class="pt-2">
+                              Attached files:
+                              <ul class="list-inside list-none">
+                                <% courseModules[i].files.forEach(function(file) { %>
+                                  <li>
+                                    <a href="#" download class="text-blue-600 hover:text-blue-800">
+                                      <ion-icon name="document-outline"></ion-icon>
+                                      <%= file.file_name %> (<%= file.file_size %> bytes)
+                                    </a>
+                                  </li>
+                                <% }); %>
+                              </ul>
+                            </div>
+                          <% } %>
                         </div>
-                      <% if(Object.keys(courseModules[i].files).length > 0) { %>
-                        <div class="pt-2">
-                          Attached files:
-                          <ul class="list-inside list-none">
-                            <% courseModules[i].files.forEach(function(file) { %>
-                              <li>
-                                <a href="#" download class="text-blue-600 hover:text-blue-800">
-                                    <ion-icon name="document-outline"></ion-icon>
-                                    <%= file.file_name %> (<%= file.file_size %> bytes)
-                                </a>
-                              </li>
-                            <% }); %>
-                          </ul>
-                        </div>
-                        <% } %>
+                      </div>
+                      <button id="course-module-delete" onclick="deleteCourseModule('<%= courseModules[i].id %>')">
+                        <ion-icon name="trash-outline"></ion-icon>
+                      </button>
                     </div>
-                  </li>
+                  </li>        
                 <% } %>
               </ul>
             </div>
@@ -62,6 +69,25 @@
 </html>
 
 <script>
+  function deleteCourseModule(courseModuleId) {
+    console.log(courseModuleId);
+    fetch('/delete/coursemodule', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({courseModuleId: courseModuleId})
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error trying to delete course module!');
+        }
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error(`Error while deleting course module: ${error}`);
+    });
+  }
     //Event listener for moving content areas around
     document.addEventListener('DOMContentLoaded', () => {
         const modules = document.getElementById('content-items');
