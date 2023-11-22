@@ -33,6 +33,14 @@ async function associateCourseTabAndModule(pool, courseTabId, courseModuleId) {
     }
 }
 
+async function associateCourseAssignmentAndModule(pool, courseAssignmentId, courseModuleId) {
+    try {
+        await pool.query(`INSERT INTO assignment_course_module (assignment_id, course_module_id) VALUES ($1, $2)`, [courseAssignmentId, courseModuleId]);
+    } catch (error) {
+        console.log(`Error while associating course assignment and module: ${error}`);
+    }
+}
+
 async function isFileInDatabase(id, pool) {
     try {
         const query = await pool.query(`SELECT * FROM files WHERE id = $1`, [id]);
@@ -109,13 +117,17 @@ async function getCourseModulesFromTab(pool, courseTabId) {
                 SELECT f.file_name, f.file_type, f.file_size 
                 FROM files AS f 
                 JOIN course_module_files AS cmf ON f.id = cmf.file_id 
-                WHERE cmf.course_module_id = $1;`, 
+                WHERE cmf.course_module_id = $1;`,
                 [module.id]
             );
 
-            console.log("Got files: ", fileQuery.rows)
+            const assignmentQuery = await pool.query(`
+                SELECT * FROM assignments WHERE module_id = $1`,
+                [module.id]
+            );
 
             module.files = fileQuery.rows;
+            module.assignment = assignmentQuery.rows;
         }
 
         return modules;
