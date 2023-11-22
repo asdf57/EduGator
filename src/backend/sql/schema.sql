@@ -41,11 +41,15 @@ CREATE TABLE course_tabs (
 
 CREATE TABLE course_modules (
         id SERIAL PRIMARY KEY,
-        tab_id INTEGER REFERENCES course_tabs(id) ON DELETE SET NULL,
         title TEXT,
         description TEXT,
-        content JSONB,
         visibility BOOLEAN
+);
+
+CREATE TABLE tab_course_module (
+    tab_id INTEGER REFERENCES course_tabs(id) ON DELETE CASCADE,
+    course_module_id INTEGER REFERENCES course_modules(id) ON DELETE CASCADE,
+    PRIMARY KEY (tab_id, course_module_id)
 );
 
 CREATE TABLE files (
@@ -59,18 +63,15 @@ CREATE TABLE files (
 CREATE TABLE assignments (
         id SERIAL PRIMARY KEY,
         module_id INTEGER REFERENCES course_modules(id) ON DELETE SET NULL,
-        title TEXT,
-        description TEXT,
         due_date DATE,
-        total_points INT,
-        visibility BOOLEAN
+        total_points INT
 );
 
 -- Junction take for linking attached files to an assignment
-CREATE TABLE assignment_files (
-    assignment_id INTEGER REFERENCES assignments(id) ON DELETE CASCADE,
+CREATE TABLE course_module_files (
+    course_module_id INTEGER REFERENCES course_modules(id) ON DELETE CASCADE,
     file_id INTEGER REFERENCES files(id) ON DELETE CASCADE,
-    PRIMARY KEY (assignment_id, file_id)
+    PRIMARY KEY (course_module_id, file_id)
 );
 
 CREATE TABLE submissions (
@@ -99,6 +100,8 @@ INSERT INTO student (username, actualname,academic_year,expected_graduation,pass
 ('tester','User two','freshman','01/01/2024','$2a$12$IMp2cGT0uJ/v6BSHo5lfSerg1tNRVKK5wnrlnGKIDvsBbfNxUkTuq');
 
 INSERT INTO teacher (username,actualname,password_hash) VALUES ('testTeacher','Teach Teacher','$2a$12$s9Ehm.s2FDmo5ONh4Jmp/.HeTiMukNe5jXAGQRfbIWAPZNcXTZlBG');
+INSERT INTO teacher (username,actualname,password_hash) VALUES ('t2','Bob','$2b$10$2UA8/YIhdjbJ05/XIcFQuuQZ/qsEWCHTSLJQRIJAqHpq6d4ZBR3Vq');
+
 
 INSERT INTO courses (course_name,description,course_start,course_end) VALUES ('courseA','test','01/01/2024','07/07/2024');
 INSERT INTO courses (course_name,description,course_start,course_end) VALUES ('courseB','This is another test','01/01/2024','07/07/2024');
@@ -111,6 +114,8 @@ INSERT INTO student_courses(student_id,course_id) VALUES (1,1);
 INSERT INTO teacher_courses(teacher_id,course_id) VALUES (1,2);
 INSERT INTO teacher_courses(teacher_id,course_id) VALUES (1,2);
 INSERT INTO teacher_courses(teacher_id,course_id) VALUES (1,1);
+INSERT INTO teacher_courses(teacher_id,course_id) VALUES (2,1);
+
 
 INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 1', 1, TRUE);
 INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 2', 1, TRUE);
