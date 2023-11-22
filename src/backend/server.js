@@ -285,7 +285,9 @@ app.get("/course/:courseId/:courseTab?", async (req, res) => {
       return res.status(400).json({"error": "Course does not exist!"});
     }
 
-    if (courseTabId && !db.isCourseTabInValidCourse(courseTabId, courseId, pool)) {
+    const isCourseTabValid = await db.isCourseTabInValidCourse(courseTabId, courseId, pool);
+
+    if (courseTabId && !isCourseTabValid) {
       return res.status(500).json({"error": "Course tab does not exist in course!"});
     }
 
@@ -316,7 +318,6 @@ app.get("/course/:courseId/:courseTab?", async (req, res) => {
 
     //If we've specified a coursetab ID, render the coursetab page instead
     if (courseTabId) {
-
       return res.render("course/content_area", {
         username: req.session.username,
         role: req.session.role,

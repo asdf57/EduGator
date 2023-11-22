@@ -60,7 +60,7 @@ async function isCourseInDatabase(id, pool) {
 async function isCourseTabInValidCourse(courseTabId, courseId, pool) {
     try {
         const query = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1 AND id = $2`, [courseId, courseTabId]);
-        if (!query || !query.rows || query.rows.length == 0) {
+        if (!query || !query.rows || query.rows.length === 0) {
             return false;
         }
 

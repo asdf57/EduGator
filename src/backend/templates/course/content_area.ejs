@@ -31,9 +31,8 @@
                             <% courseModules[i].files.forEach(function(file) { %>
                               <li>
                                 <a href="#" download class="text-blue-600 hover:text-blue-800">
-                                    <ion-icon name="document-outline">
-                                        <%= file.file_name %> (<%= file.file_size %> bytes)
-                                    </ion-icon>
+                                    <ion-icon name="document-outline"></ion-icon>
+                                    <%= file.file_name %> (<%= file.file_size %> bytes)
                                 </a>
                               </li>
                             <% }); %>
