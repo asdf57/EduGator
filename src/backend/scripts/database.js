@@ -86,10 +86,14 @@ async function isCourseTabInDatabase(pool, courseTabId) {
 async function getCourseModulesFromTab(pool, courseTabId) {
     try {
         const moduleQuery = await pool.query(`
-            SELECT * FROM course_modules 
-            WHERE id IN (
-                SELECT course_module_id FROM tab_course_module WHERE tab_id = $1
-            );`, 
+        SELECT *
+        FROM course_modules
+        WHERE id IN (
+            SELECT course_module_id
+            FROM tab_course_module
+            WHERE tab_id = $1
+        )
+        ORDER BY order_id;`,
             [courseTabId]
         );
 
