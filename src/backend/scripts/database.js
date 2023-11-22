@@ -157,7 +157,7 @@ async function createCourseModule(courseModulePayload, pool) {
                 return undefined;
             }
 
-            await pool.query(`INSERT INTO assignments (module_id, due_date, total_points) VALUES ($1, $2, $3) RETURN id`, [idQuery.rows[0].id, due_date, total_points]);
+            await pool.query(`INSERT INTO assignments (module_id, due_date, total_points) VALUES ($1, $2, $3)`, [idQuery.rows[0].id, dueDate, points]);
         }
 
         return idQuery.rows[0].id;

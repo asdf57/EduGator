@@ -82,6 +82,9 @@
     const addAssignmentToggle = document.getElementById("add-assignment-input");
     const assignmentDueDate = document.getElementById("assn-due-date");
     const assignmentPoints = document.getElementById("assn-points");
+    const assignmentDueDateInput = document.getElementById("assn-due-date-input");
+    const assignmentPointsInput = document.getElementById("assn-points-input");
+
 
     const quill = new Quill('#module-description', {
         theme: 'snow'  // Specify theme
@@ -115,8 +118,8 @@
                 description: quill.root.innerHTML,
                 enableSubmissions: enableSubmissions.checked,
                 hasAssignment: hasAssignment,
-                dueDate: assignmentDueDate.value,
-                points: assignmentPoints.value,
+                dueDate: assignmentDueDateInput.value,
+                points: assignmentPointsInput.value,
                 attachedFileIds: fileIds,
                 courseTabId: "<%= courseTabId %>"
             })

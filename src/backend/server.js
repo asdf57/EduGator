@@ -118,7 +118,7 @@ app.get("/home", async (req, res) => {
             }
       }
 
-      return res.render("home", {
+      return res.render("pages/home", {
           username: req.session.username, 
           role: req.session.role, 
           courses: courses
@@ -152,7 +152,7 @@ app.get("/create", async (req, res) => {
 
     if (role === LoginType.Admin) {
       courses = await course.getAllCourses(pool);
-      res.render("create", {courses: courses, username: req.session.username, role: req.session.role});
+      res.render("pages/create", {courses: courses, username: req.session.username, role: req.session.role});
     } else {
       return res.sendFile(getHtmlPath("login.html"));
     }
@@ -166,7 +166,7 @@ app.get("/createCourse", (req, res) => {
   if (req.session.role !== "admin") {
     return res.redirect('/login');
   }
-  res.render("course/create_course", {
+  res.render("pages/create_course", {
     username: req.session.username,
     role: req.session.role
   });
@@ -197,7 +197,7 @@ app.post("/createCourse", async (req, res) => {
 app.get("/home", async (req, res) => {
   try {
       const courses = await pool.query('SELECT * FROM courses');
-      res.render("home", { courses: courses.rows, username: req.session.username, role: req.session.role });
+      res.render("pages/home", { courses: courses.rows, username: req.session.username, role: req.session.role });
   } catch (error) {
       console.error(error);
       res.status(500).send("Error loading courses");
@@ -318,7 +318,7 @@ app.get("/course/:courseId/:courseTab?", async (req, res) => {
 
     //If we've specified a coursetab ID, render the coursetab page instead
     if (courseTabId) {
-      return res.render("course/content_area", {
+      return res.render("pages/content_area", {
         username: req.session.username,
         role: req.session.role,
         courseTabId: courseTabId,
@@ -329,7 +329,7 @@ app.get("/course/:courseId/:courseTab?", async (req, res) => {
       });
     }
 
-    res.render("course/course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
+    res.render("pages/course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
   } catch (error) {
       console.error(error);
       res.status(500).send("Error loading course page");
@@ -357,7 +357,7 @@ app.get("/delete", async (req, res) => {
             const students = await db.getAllEntriesFromRole(pool, LoginType.Student);
             const teachers = await db.getAllEntriesFromRole(pool, LoginType.Teacher);
 
-            res.render("delete", {admins: admins, students: students, teachers: teachers, username: req.session.username, role: req.session.role});
+            res.render("pages/delete", {admins: admins, students: students, teachers: teachers, username: req.session.username, role: req.session.role});
         } else {
             return res.sendFile(getHtmlPath("login.html"));
         }
@@ -475,6 +475,10 @@ async function createCourseModule(req, res) {
 
   //create course module
   const courseModuleId = await db.createCourseModule(req.body, pool);
+
+  if (courseModuleId === undefined) {
+    return res.status(500).json({error: "Failed to create course module"});
+  }
 
   //Associate the newly created course module with course tab (if specified)
   if (courseModuleId && courseTabId) {

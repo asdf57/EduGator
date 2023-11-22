@@ -1,0 +1,39 @@
+<div class="flex items-center justify-between">
+    <div>
+        <div class="p-4">
+        <h3 class="text-xl font-semibold pb-5">
+            <%= courseModule.title %>
+        </h3>
+        <div class="course-module-description">
+            <%- courseModule.description %>
+        </div>
+        <% if(Object.keys(courseModule.files).length> 0) { %>
+            <div class="pt-2">
+            Attached files:
+            <ul class="list-inside list-none">
+                <% courseModule.files.forEach(function(file) { %>
+                <li>
+                    <a href="#" download class="text-blue-600 hover:text-blue-800">
+                    <ion-icon name="document-outline"></ion-icon>
+                    <%= file.file_name %> (<%= file.file_size %> bytes)
+                    </a>
+                </li>
+                <% }); %>
+            </ul>
+            </div>
+        <% } %>
+
+        <% if(Object.keys(courseModule.assignment).length> 0) { %>
+            <div class="pt-4">
+            <ul class="list-inside list-none">
+                <% courseModule.assignment.forEach(function(assignment) { %>
+                <li>
+                    Due Date: <%= assignment.due_date %>
+                    Total Points: <%= assignment.total_points %>
+                </li>
+                <% }); %>
+            </ul>
+            </div>
+        <% } %>
+    </div>
+</div>
