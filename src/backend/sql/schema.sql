@@ -47,6 +47,7 @@ CREATE TABLE course_modules (
         order_id INTEGER
 );
 
+-- Junction table for course tabs and course modules
 CREATE TABLE tab_course_module (
     tab_id INTEGER REFERENCES course_tabs(id) ON DELETE CASCADE,
     course_module_id INTEGER REFERENCES course_modules(id) ON DELETE CASCADE,
