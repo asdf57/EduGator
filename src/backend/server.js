@@ -505,7 +505,19 @@ app.post("/update/:entity/:type", async (req, res) => {
       }
 
       Object.entries(order).forEach(async ([courseModuleId, orderId]) => {
-        const updateOrderQuery = await pool.query(`UPDATE course_modules SET order_id=$1 WHERE id=$2 AND course_id=$3; `, [orderId, courseModuleId, courseId]);
+        console.log("vals: ", [orderId, courseModuleId, courseTabId]);
+        const updateOrderQuery = await pool.query(`
+        UPDATE course_modules
+        SET order_id = $1
+        WHERE id = $2
+        AND EXISTS (
+            SELECT 1
+            FROM tab_course_module
+            WHERE course_module_id = $2
+            AND tab_id = $3
+        );`,
+        [orderId, courseModuleId, courseTabId]);
+
         if (!updateOrderQuery) {
           return res.status(500).json({error: "Failed to update course tab order!"});
         }
