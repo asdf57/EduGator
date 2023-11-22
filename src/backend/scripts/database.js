@@ -33,14 +33,6 @@ async function associateCourseTabAndModule(pool, courseTabId, courseModuleId) {
     }
 }
 
-async function associateCourseAssignmentAndModule(pool, courseAssignmentId, courseModuleId) {
-    try {
-        await pool.query(`INSERT INTO assignment_course_module (assignment_id, course_module_id) VALUES ($1, $2)`, [courseAssignmentId, courseModuleId]);
-    } catch (error) {
-        console.log(`Error while associating course assignment and module: ${error}`);
-    }
-}
-
 async function isFileInDatabase(id, pool) {
     try {
         const query = await pool.query(`SELECT * FROM files WHERE id = $1`, [id]);
