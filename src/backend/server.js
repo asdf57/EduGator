@@ -505,7 +505,6 @@ app.post("/update/:entity/:type", async (req, res) => {
       }
 
       Object.entries(order).forEach(async ([courseModuleId, orderId]) => {
-        console.log("vals: ", [orderId, courseModuleId, courseTabId]);
         const updateOrderQuery = await pool.query(`
         UPDATE course_modules
         SET order_id = $1
