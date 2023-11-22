@@ -43,7 +43,8 @@ CREATE TABLE course_modules (
         id SERIAL PRIMARY KEY,
         title TEXT,
         description TEXT,
-        visibility BOOLEAN
+        visibility BOOLEAN,
+        order_id INTEGER
 );
 
 CREATE TABLE tab_course_module (
