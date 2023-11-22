@@ -367,20 +367,38 @@ app.get("/delete", async (req, res) => {
     }
 });
 
-app.post("/delete/file", async (req, res) => {
+app.post("/delete/:type", async (req, res) => {
   try {
-    const fileId = req.body.fileid;
+    const type = req.params.type;
 
-    if (!fileId) {
-      return res.status(500).json({error: "File name of file to delete is invalid!"});
+    if (type === "file") {
+      const fileId = req.body.fileid;
+
+      if (!fileId) {
+        return res.status(500).json({error: "File name of file to delete is invalid!"});
+      }
+
+      if (!await db.isFileInDatabase(fileId, pool)) {
+        return res.status(500).json({error: "File doesn't exist in database!"});
+      }
+
+      await pool.query(`DELETE FROM files WHERE id = $1`, [fileId]);
     }
 
-    if (!await db.isFileInDatabase(fileId, pool)) {
-      return res.status(500).json({error: "File doesn't exist in database!"});
+    if (type === "coursemodule") {
+      const courseModuleId = req.body.courseModuleId;
+      console.log("Got: ", courseModuleId);
+      if (!courseModuleId) {
+        return res.status(500).json({error: "Course module id is invalid!"});
+      }
+
+      await pool.query(`DELETE FROM course_modules WHERE id = $1`, [courseModuleId]);
     }
 
-    await pg.query(`DELETE FROM files WHERE id = $1`, [fileId]);
+    return res.end();
+
   } catch (error) {
+    console.log(`Error while deleting: ${error}`);
     return res.status(500).json({error: error});
   }
 });
