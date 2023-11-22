@@ -475,7 +475,6 @@ async function createCourseModule(req, res) {
 
   //create course module
   const courseModuleId = await db.createCourseModule(req.body, pool);
-  console.log("courseModuleId: ", courseModuleId);
 
   //Associate the newly created course module with course tab (if specified)
   if (courseModuleId && courseTabId) {
@@ -487,7 +486,6 @@ async function createCourseModule(req, res) {
     await db.associateCourseTabAndModule(pool, courseTabId, courseModuleId);
   }
 
-  //create assignment in course module (if required)
   return res.end();
 }
 
