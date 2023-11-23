@@ -11,9 +11,9 @@
         <ul class="list-inside list-none">
             <% courseModule.files.forEach(function(file) { %>
             <li>
-                <a href="#" download class="text-blue-600 hover:text-blue-800">
-                <ion-icon name="document-outline"></ion-icon>
-                <%= file.file_name %> (<%= file.file_size %> bytes)
+                <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModule.id %>/<%= file.id %>" download class="text-blue-600 hover:text-blue-800" onclick="event.stopPropagation()">
+                    <ion-icon name="document-outline"></ion-icon>
+                    <%= file.file_name %> (<%= file.file_size %> bytes)
                 </a>
             </li>
             <% }); %>
@@ -21,15 +21,17 @@
         </div>
     <% } %>
 
-    <% if(Object.keys(courseModule.assignment).length> 0) { %>
+    <% if(courseModule.assignment !== undefined) { %>
         <div class="pt-4">
         <ul class="list-inside list-none">
-            <% courseModule.assignment.forEach(function(assignment) { %>
             <li>
-                Due Date: <%= assignment.due_date %>
-                Total Points: <%= assignment.total_points %>
+                <div>
+                    Due Date: <%= courseModule.assignment.due_date %>
+                </div>
+                <div>
+                    Total Points: <%= courseModule.assignment.total_points %>
+                </div>
             </li>
-            <% }); %>
         </ul>
         </div>
     <% } %>
