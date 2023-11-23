@@ -266,10 +266,11 @@ app.post("/upload/:type", upload.any(), async (req, res) => {
   }
 });
 
-app.get("/course/:courseId/:courseTab?", async (req, res) => {
+app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
   try {
     const courseId = req.params.courseId;
     const courseTabId = req.params.courseTab;
+    const courseModuleId = req.params.courseModuleId;
 
     if (req.session.role === LoginType.Admin) {
       return res.status(401).json({error: "Admin role cannot access courses!"});
