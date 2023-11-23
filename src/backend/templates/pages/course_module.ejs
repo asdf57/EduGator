@@ -4,12 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <%- include( '../components/styling' ) %>
 </head>
 <body>
-    <main>
-        <div class="flex items-center justify-between">
-            <%- include('../components/course_module', {courseModule: courseModule}) %>
-        </div>
-    </main>
+    <%- include( '../components/header' ) %>
+    <%- include( '../components/sidebar' ) %>
+
+    <div class="flex">
+        <%- include('../components/course_sidebar') %>
+        <main class="flex-grow">
+            <div class="flex items-start justify-between p-4">
+                <%- include('../components/course_module_full', {courseModule: courseModule}) %>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </body>
+
+
 </html>
