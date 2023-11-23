@@ -7,6 +7,7 @@ const multer = require('multer');
 const fs = require('fs');
 
 const db = require("./scripts/database");
+const utils = require("./scripts/utils");
 const course = require("./scripts/course");
 const { LoginType, getUserType } = require('./scripts/roles');
 
@@ -93,7 +94,7 @@ app.get("/home", async (req, res) => {
   try {
       let courses = [];
       if (req.session.role === 'teacher' || req.session.role === 'student') {
-          const id = await db.getIdFromUsername(req.session.username, req.session.role, pool);
+          const id = await db.getIdFromUsername(pool, req.session.username, req.session.role);
 
             if (!id) {
                 return res.status(500).json({error: "User does not exist!"});
@@ -266,6 +267,45 @@ app.post("/upload/:type", upload.any(), async (req, res) => {
   }
 });
 
+app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    const courseTabId = req.params.courseTab;
+    const courseModuleId = req.params.courseModuleId;
+    const fileId = req.params.fileId;
+
+    console.log(req.params);
+
+    //General way to verify all course route parameters are non-empty & valid!
+    if (! await db.isCourseRouteValid(pool, courseId, courseTabId, courseModuleId, fileId)) {
+      return res.status(500).json({error: "Invalid parameters specified!"});
+    }
+
+    //Check that user exists in database
+    const userId = await db.getIdFromUsername(pool, req.session.username, req.session.role);
+    if (userId === undefined) {
+      return res.status(500).json({error: "Failed to find user in database!"});
+    }
+
+    //Check that user can access file
+    if (! await db.isUserEnrolledInCourse(pool, userId, req.session.role, courseId)) {
+      return res.status(400).json({error: "User cannot access file!"});
+    }
+
+    //Get file
+    const fileData = await db.getFileData(pool, fileId);
+    if (Object.keys(fileData).length == 0) {
+      return res.status(404).json({error: "File data not found!"});
+    }
+
+    res.setHeader('Content-Disposition', 'attachment; filename="' + fileData.file_name + '"');
+    res.setHeader('Content-Type', 'application/octet-stream');
+    return res.end(fileData.file_data);
+  } catch (error) {
+    return res.status(500).json({error: "Error while retrieving file!"});
+  }
+});
+
 app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
   try {
     const courseId = req.params.courseId;
@@ -286,20 +326,20 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
       return res.status(400).json({"error": "Course does not exist!"});
     }
 
-    const isCourseTabValid = await db.isCourseTabInValidCourse(courseTabId, courseId, pool);
+    const isCourseTabValid = await db.isCourseTabInValidCourse(pool, courseTabId, courseId);
 
     if (courseTabId && !isCourseTabValid) {
       return res.status(500).json({"error": "Course tab does not exist in course!"});
     }
 
-    const isCourseModuleValid = await db.isCourseModuleInTab(courseTabId, courseId, pool);
+    const isCourseModuleValid = await db.isCourseModuleInTab(pool, courseTabId, courseModuleId);
 
     if (courseTabId && courseModuleId && !isCourseModuleValid) {
       return res.status(500).json({"error": "Course module does not exist in course tab!"});
     }
 
     //Get the ID from the username
-    const entityId = await db.getIdFromUsername(req.session.username, req.session.role);
+    const entityId = await db.getIdFromUsername(pool, req.session.username, req.session.role);
 
     //Check that the user exists!
     const enrollmentQuery = await pool.query(`SELECT * FROM ${req.session.role} WHERE id = $1`, [entityId]);
@@ -323,6 +363,19 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     //Shortcut to obtain info on the selected course tab
     const courseTab = courseTabsQuery.rows.find(item => item.id == courseTabId);
 
+    if (courseModuleId) {
+      const courseModule = await db.getCourseModule(pool, courseModuleId);
+      return res.render("pages/course_module", {
+        username: req.session.username,
+        role: req.session.role,
+        courseModule: courseModule,
+        courseTabId: courseTabId,
+        courseId: courseId,
+        courseTabs: courseTabsQuery.rows,
+        courseModuleId: courseModuleId
+      });
+    }
+
     //If we've specified a coursetab ID, render the coursetab page instead
     if (courseTabId) {
       return res.render("pages/content_area", {
@@ -333,13 +386,6 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
         courseTabs: courseTabsQuery.rows,
         courseModules: courseModules,
         courseTab: courseTab
-      });
-    }
-
-    if (courseModuleId) {
-      const courseModule = await db.getCourseModule(pool, courseModuleId);
-      return res.render("pages/content_module", {
-        courseModule: courseModule
       });
     }
 
@@ -392,7 +438,7 @@ app.post("/delete/:type", async (req, res) => {
         return res.status(500).json({error: "File name of file to delete is invalid!"});
       }
 
-      if (!await db.isFileInDatabase(fileId, pool)) {
+      if (!await db.isFileInDatabase(pool, fileId)) {
         return res.status(500).json({error: "File doesn't exist in database!"});
       }
 
@@ -571,7 +617,7 @@ app.post("/update/:entity/:type", async (req, res) => {
         return res.status(400).json({error: "Invalid courseId value sent!"});
       }
 
-      const isCourseIdValid = db.isCourseInDatabase(courseId, pool);
+      const isCourseIdValid = db.isCourseInDatabase(pool, courseId);
 
       if (!isCourseIdValid) {
         return res.status(400).json({error: "Course does not exist!"});
@@ -672,7 +718,7 @@ app.post("/create/:type", async (req, res) => {
             [username, actualName, academicYear, graduationDate, hashedPassword]
         );
 
-        const id = await db.getIdFromUsername(username, LoginType.Student, pool);
+        const id = await db.getIdFromUsername(pool, username, LoginType.Student);
         if (!id) {
           return res.status(500).json({error: "Could not obtain a corresponding student ID!"});
         }
@@ -693,7 +739,7 @@ app.post("/create/:type", async (req, res) => {
             [username, actualName, hashedPassword]
         );
 
-        const id = await db.getIdFromUsername(username, LoginType.Teacher, pool);
+        const id = await db.getIdFromUsername(pool, username, LoginType.Teacher);
         if (!id) {
           return res.status(500).json({error: "Could not obtain a corresponding teacher ID!"});
         }
