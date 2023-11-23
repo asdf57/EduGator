@@ -294,7 +294,7 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
 
     const isCourseModuleValid = await db.isCourseModuleInTab(courseTabId, courseId, pool);
 
-    if (courseModuleId && !isCourseModuleValid) {
+    if (courseTabId && courseModuleId && !isCourseModuleValid) {
       return res.status(500).json({"error": "Course module does not exist in course tab!"});
     }
 
@@ -337,8 +337,7 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     }
 
     if (courseModuleId) {
-      const courseModuleId = req.body.courseModuleId;
-
+      const courseModule = await db.getCourseModule(pool, courseModuleId);
       return res.render("pages/content_module", {
         courseModule: courseModule
       });
