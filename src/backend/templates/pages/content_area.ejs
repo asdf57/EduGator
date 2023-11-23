@@ -22,13 +22,19 @@
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
               <ul id="content-items" class="divide-y divide-gray-200">
                 <% for (let i=0; i < courseModules.length; i++) { %>
-                    <li coursemoduleid="<%= courseModules[i].id %>"
-                      class="module-item hover:bg-gray-50 menu-item mb-2 draggable-item p-2 cursor-pointer">
-                      <a href="/<%= courseModules[i].id %>">
+                  <li coursemoduleid="<%= courseModules[i].id %>"
+                      class="module-item hover:bg-gray-50 mb-2 draggable-item p-2 cursor-pointer">
+                    <div class="flex items-center justify-between hover:bg-gray-50">
+                      <div onclick="navigateToCourseModulePage('<%= courseModules[i].id %>')" class="flex-grow">
                         <%- include('../components/course_module', {courseModule: courseModules[i]}) %>
-                      </a>
-                    </li>
-                  <% } %>
+                      </div>
+
+                      <button id="course-module-delete" onclick="deleteCourseModule('<%= courseModules[i].id %>')" class="pr-4">
+                        <ion-icon name="trash-outline"></ion-icon>
+                      </button>
+                    </div>
+                  </li>
+                <% } %>
               </ul>
             </div>
 
@@ -49,7 +55,7 @@
 
 <script>
   function deleteCourseModule(courseModuleId) {
-    console.log(courseModuleId);
+    console.log("Deleting: ", courseModuleId);
     fetch('/delete/coursemodule', {
       method: 'POST',
       headers: {
@@ -67,6 +73,13 @@
         console.error(`Error while deleting course module: ${error}`);
       });
   }
+
+  function navigateToCourseModulePage(courseModuleId) {
+    var currentUrl = window.location.href;
+    var newUrl = currentUrl.endsWith('/') ? currentUrl + courseModuleId : currentUrl + '/' + courseModuleId; 
+    window.location.href = newUrl;
+  }
+
   //Event listener for moving content areas around
   document.addEventListener('DOMContentLoaded', () => {
     const modules = document.getElementById('content-items');
