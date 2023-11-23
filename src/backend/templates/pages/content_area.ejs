@@ -29,9 +29,11 @@
                         <%- include('../components/course_module', {courseModule: courseModules[i]}) %>
                       </div>
 
-                      <button id="course-module-delete" onclick="deleteCourseModule('<%= courseModules[i].id %>')" class="pr-4">
-                        <ion-icon name="trash-outline"></ion-icon>
-                      </button>
+                      <% if (role==="teacher" ) { %>
+                        <button id="course-module-delete" onclick="deleteCourseModule('<%= courseModules[i].id %>')" class="pr-4">
+                          <ion-icon name="trash-outline"></ion-icon>
+                        </button>
+                      <% } %>
                     </div>
                   </li>
                 <% } %>
@@ -42,7 +44,7 @@
               <div class="flex items-center justify-center p-5">
                 <%- include('../components/create_course_content_modal') %>
               </div>
-              <% } %>
+            <% } %>
           </main>
       </div>
 
