@@ -292,6 +292,12 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
       return res.status(500).json({"error": "Course tab does not exist in course!"});
     }
 
+    const isCourseModuleValid = await db.isCourseModuleInTab(courseTabId, courseId, pool);
+
+    if (courseModuleId && !isCourseModuleValid) {
+      return res.status(500).json({"error": "Course module does not exist in course tab!"});
+    }
+
     //Get the ID from the username
     const entityId = await db.getIdFromUsername(req.session.username, req.session.role);
 
@@ -327,6 +333,14 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
         courseTabs: courseTabsQuery.rows,
         courseModules: courseModules,
         courseTab: courseTab
+      });
+    }
+
+    if (courseModuleId) {
+      const courseModuleId = req.body.courseModuleId;
+
+      return res.render("pages/content_module", {
+        courseModule: courseModule
       });
     }
 
