@@ -1,4 +1,4 @@
-async function getIdFromUsername(username, role, pool) {
+async function getIdFromUsername(pool, username, role) {
     try {
         const idQuery = await pool.query(`SELECT id FROM ${role} WHERE username = $1`, [username]);
         if (idQuery.rows.length < 1 || !idQuery)
@@ -13,7 +13,6 @@ async function getIdFromUsername(username, role, pool) {
 
 async function getAllEntriesFromRole(pool, role) {
     try {
-        console.log(`SELECT * FROM ${role}`);
         const query = await pool.query(`SELECT * FROM ${role}`);
         if (query.rows.length === 0 || !query)
             return []
@@ -33,19 +32,7 @@ async function associateCourseTabAndModule(pool, courseTabId, courseModuleId) {
     }
 }
 
-async function isFileInDatabase(id, pool) {
-    try {
-        const query = await pool.query(`SELECT * FROM files WHERE id = $1`, [id]);
-        if (query.rows.length < 1 || !query)
-            return false
-
-        return true;
-    } catch (error) {
-        return false;
-    }
-}
-
-async function isCourseInDatabase(id, pool) {
+async function isCourseInDatabase(pool, id) {
     try {
         const query = await pool.query(`SELECT * FROM courses WHERE id = $1`, [id]);
         if (query.rows.length < 1 || !query)
@@ -57,7 +44,7 @@ async function isCourseInDatabase(id, pool) {
     }
 }
 
-async function isCourseTabInValidCourse(courseTabId, courseId, pool) {
+async function isCourseTabInValidCourse(pool, courseTabId, courseId) {
     try {
         const query = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1 AND id = $2`, [courseId, courseTabId]);
         if (!query || !query.rows || query.rows.length === 0) {
@@ -96,11 +83,11 @@ async function getCourseModule(pool, courseModuleId) {
             return [];
         }
 
-        const courseModule = moduleQuery.rows;
+        const courseModule = moduleQuery.rows[0];
 
         // Fetch and attach files for module
         const fileQuery = await pool.query(`
-            SELECT f.file_name, f.file_type, f.file_size 
+            SELECT f.file_name, f.file_type, f.file_size, f.id
             FROM files AS f 
             JOIN course_module_files AS cmf ON f.id = cmf.file_id 
             WHERE cmf.course_module_id = $1;`,
@@ -113,7 +100,7 @@ async function getCourseModule(pool, courseModuleId) {
         );
 
         courseModule.files = fileQuery.rows;
-        courseModule.assignment = assignmentQuery.rows;
+        courseModule.assignment = assignmentQuery.rows[0];
 
         return courseModule;
     } catch (error) {
@@ -145,7 +132,7 @@ async function getCourseModulesFromTab(pool, courseTabId) {
         // Fetch and attach files for each module
         for (const module of modules) {
             const fileQuery = await pool.query(`
-                SELECT f.file_name, f.file_type, f.file_size 
+                SELECT f.file_name, f.file_type, f.file_size, f.id 
                 FROM files AS f 
                 JOIN course_module_files AS cmf ON f.id = cmf.file_id 
                 WHERE cmf.course_module_id = $1;`,
@@ -158,7 +145,7 @@ async function getCourseModulesFromTab(pool, courseTabId) {
             );
 
             module.files = fileQuery.rows;
-            module.assignment = assignmentQuery.rows;
+            module.assignment = assignmentQuery.rows[0];
         }
 
         return modules;
@@ -177,6 +164,21 @@ async function isCourseModuleInTab(pool, courseTabId, courseModuleId) {
 
         return true;
     } catch (error) {
+        console.log(error);
+        return false;
+    }
+}
+
+async function isFileInDatabase(pool, fileId) {
+    try {
+        const query = await pool.query(`SELECT * FROM files WHERE id = $1`, [fileId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.log(error);
         return false;
     }
 }
@@ -219,17 +221,152 @@ async function createCourseModule(courseModulePayload, pool) {
 
 }
 
+async function isFileAssociatedWithCourseModule(pool, courseModuleId, fileId) {
+    try {
+        const query = await pool.query(`SELECT * FROM course_module_files WHERE course_module_id = $1 AND file_id = $2`, [courseModuleId, fileId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
+}
+
+async function isUserEnrolledInCourse(pool, userId, role, courseId) {
+    try {
+        // Check that the student or teacher is enrolled in the course the file is located under!
+        const isEnrolled = await pool.query(`SELECT * FROM ${role}_courses WHERE ${role}_id = $1 AND course_id = $2`, [userId, courseId]);
+        if (!isEnrolled || !isEnrolled.rows || isEnrolled.rows.length == 0) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
+}
+
+async function getFileIdFromName(pool, fileName) {
+    try {
+        // Check that the student or teacher is enrolled in the course!
+        const query = await pool.query(`SELECT id FROM files WHERE file_name = $1`, [fileName]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return undefined;
+        }
+
+        return query.rows[0];
+    } catch (error) {
+        console.log(error);
+        return undefined;
+    }
+}
+
+async function isCourseValid(pool, courseId) {
+    try {
+        const query = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function isCourseModuleInDatabase(pool, courseModuleId) {
+    try {
+        const query = await pool.query(`SELECT * FROM course_modules WHERE id = $1`, [courseModuleId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function isCourseRouteValid(pool, courseId, courseTabId, courseModuleId, fileId) {
+    try {
+        // Existence checks
+        if (! await isCourseInDatabase(pool, courseId)) {
+            console.log("coruse not in db");
+            return false;
+        }
+
+        if (courseTabId && ! await isCourseTabInDatabase(pool, courseTabId)) {
+            console.log("course tab not in db");
+            return false;
+        }
+
+        if (courseModuleId && ! await isCourseModuleInDatabase(pool, courseModuleId)) {
+            console.log("course module not in db");
+            return false;
+        }
+
+        if (fileId && ! await isFileInDatabase(pool, fileId)) {
+            console.log("file id not in db");
+            return false;
+        }
+
+        // Relation checks
+        if (courseTabId && ! await isCourseTabInValidCourse(pool, courseTabId, courseId)) {
+            console.log("course tab not in course");
+            return false;
+        }
+
+        if (courseModuleId && ! await isCourseModuleInTab(pool, courseTabId, courseModuleId)) {
+            console.log("course module not in tab");
+            return false;
+        }
+
+        if (fileId && ! await isFileAssociatedWithCourseModule(pool, courseModuleId, fileId)) {
+            console.log("file not assciated with course module");
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
+}
+
+async function getFileData(pool, fileId) {
+    try {
+        const query = await pool.query(`SELECT * FROM files WHERE id = $1`, [fileId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return {};
+        }
+
+        return query.rows[0];
+    } catch (error) {
+        return {};
+    }
+}
 
 module.exports = {
     getIdFromUsername,
     getAllEntriesFromRole,
     isCourseInDatabase,
     isCourseTabInValidCourse,
-    isFileInDatabase,
     isCourseTabInDatabase,
     createCourseModule,
     associateCourseTabAndModule,
     getCourseModulesFromTab,
     isCourseModuleInTab,
-    getCourseModule
+    getCourseModule,
+    getFileIdFromName,
+    isFileInDatabase,
+    isFileAssociatedWithCourseModule,
+    isCourseValid,
+    isCourseModuleInDatabase,
+    isCourseRouteValid,
+    isUserEnrolledInCourse,
+    getFileData
 };
