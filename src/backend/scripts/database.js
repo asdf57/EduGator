@@ -83,6 +83,45 @@ async function isCourseTabInDatabase(pool, courseTabId) {
     }
 }
 
+async function getCourseModule(pool, courseModuleId) {
+    try {
+        const moduleQuery = await pool.query(`
+            SELECT *
+            FROM course_modules
+            WHERE id = $1`,
+            [courseModuleId]
+        );
+
+        if (!moduleQuery || !moduleQuery.rows || moduleQuery.rows.length === 0) {
+            return [];
+        }
+
+        const courseModule = moduleQuery.rows;
+
+        // Fetch and attach files for module
+        const fileQuery = await pool.query(`
+            SELECT f.file_name, f.file_type, f.file_size 
+            FROM files AS f 
+            JOIN course_module_files AS cmf ON f.id = cmf.file_id 
+            WHERE cmf.course_module_id = $1;`,
+            [courseModuleId]
+        );
+
+        const assignmentQuery = await pool.query(`
+            SELECT * FROM assignments WHERE module_id = $1`,
+            [courseModuleId]
+        );
+
+        courseModule.files = fileQuery.rows;
+        courseModule.assignment = assignmentQuery.rows;
+
+        return courseModule;
+    } catch (error) {
+        console.log(`Error while getting course modules from course tab: ${error}`);
+        return [];
+    }
+}
+
 async function getCourseModulesFromTab(pool, courseTabId) {
     try {
         const moduleQuery = await pool.query(`
@@ -129,6 +168,18 @@ async function getCourseModulesFromTab(pool, courseTabId) {
     }
 }
 
+async function isCourseModuleInTab(pool, courseTabId, courseModuleId) {
+    try {
+        const query = await pool.query(`SELECT * FROM tab_course_module WHERE tab_id = $1 AND course_module_id = $2`, [courseTabId, courseModuleId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
 
 async function createCourseModule(courseModulePayload, pool) {
     try {
@@ -178,5 +229,7 @@ module.exports = {
     isCourseTabInDatabase,
     createCourseModule,
     associateCourseTabAndModule,
-    getCourseModulesFromTab
+    getCourseModulesFromTab,
+    isCourseModuleInTab,
+    getCourseModule
 };
