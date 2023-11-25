@@ -97,7 +97,7 @@ CREATE TABLE teacher_courses (
 
 
 INSERT INTO student (username, actualname,academic_year,expected_graduation,password_hash) VALUES
-('testUser','User User','freshman','01/01/2024','$2a$12$IMp2cGT0uJ/v6BSHo5lfSerg1tNRVKK5wnrlnGKIDvsBbfNxUkTuq');
+('testUser','User User','freshman','01/01/2024','$2a$12$nFNSWUpogmePH7Ui5YwDTeVUp4BdsQT4qyfl/epk5uiHvG5zCVTGa');
 INSERT INTO student (username, actualname,academic_year,expected_graduation,password_hash) VALUES
 ('tester','User two','freshman','01/01/2024','$2a$12$IMp2cGT0uJ/v6BSHo5lfSerg1tNRVKK5wnrlnGKIDvsBbfNxUkTuq');
 
