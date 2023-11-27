@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LMS Dashboard</title>
-    <%- include( 'styling' ) %>
+    <%- include( '../components/styling' ) %>
     <style>
         .delete-btn {
             background-color: #ff4d4d; /* Red */
@@ -19,16 +19,16 @@
 </head>
 <body class="bg-gray-200 font-sans">
     <!-- Header Content -->
-    <%- include( 'header' ) %>
+    <%- include( '../components/header' ) %>
     <div class="flex h-screen">
         <!-- Sidebar -->
-        <%- include( 'sidebar' ) %>
+        <%- include( '../components/sidebar' ) %>
         <!-- Main Content -->
         <main class="flex-grow p-4">
             <!-- Course cards -->
             <div class="grid grid-cols-3 gap-6 mb-8" id="courseGrid">
                 <% courses.forEach(course => { %>
-                    <a href="/course/<%= course.id %>" class="block transition-colors duration-300 hover:bg-black-100 items-center text-black rounded-lg">
+                    <a href="/course/<%= course.course_id %>" class="block transition-colors duration-300 hover:bg-black-100 items-center text-black rounded-lg">
                     <div class="course-card block transition-colors duration-300 hover:bg-black-100 items-center text-black rounded-lg">
                         <div class="card card-bordered">
                             <figure><img src="https://i.imgur.com/TZuVgPs.png" alt="Course Image"></figure>
@@ -39,7 +39,7 @@
                                     <p class="text-xs">Course Start: <%= course.course_start %></p>
                                     <p class="text-xs">Course End: <%= course.course_end %></p>
                                     <!-- Delete button -->
-                                    <button onclick="deleteCourse('<%= course.id %>')" class="delete-btn">Delete</button>
+                                    <button onclick="deleteCourse('<%= course.course_id %>')" class="delete-btn">Delete</button>
                                 </div>
                             </div>
                         </div>

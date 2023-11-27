@@ -1,0 +1,48 @@
+<div class="bg-gray-800 text-white p-5 rounded-md w-full md:w-1/2">
+    <h1 class="text-xl font-semibold pb-5">
+        <%= courseModule.title %>
+    </h1>
+    <div class="course-module-description mb-3">
+        <%- courseModule.description %>
+    </div>
+    <% if(Object.keys(courseModule.files).length > 0) { %>
+        <div class="pt-2">
+            Attached files:
+            <ul class="list-inside list-none">
+                <% courseModule.files.forEach(function(file) { %>
+                <li>
+                    <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
+                        <ion-icon name="document-outline"></ion-icon>
+                        <%= file.file_name %> (<%= file.file_size %> bytes)
+                    </a>
+                </li>
+                <% }); %>
+            </ul>
+        </div>
+    <% } %>
+</div>
+
+<!-- Right column for Grading Information -->
+<% if(courseModule.assignment !== undefined) { %>
+    <div class="card bg-gray-700 text-white w-full md:w-96 shadow-2xl ml-4 rounded-md">
+        <div class="card-body">
+            <h2 class="card-title text-center">Grading</h2>
+            <div class="divider"></div>
+            <div class="flex items-center gap-2">
+                <ion-icon name="calendar-number-outline" style="font-size: 64px"></ion-icon>
+                <span>Due Date: <%= courseModule.assignment.due_date %></span>
+            </div>
+            <div class="divider"></div>
+            <div class="flex items-center gap-2">
+                <ion-icon name="document-outline" style="font-size: 40px"></ion-icon>
+                <span>Type: Assignment</span>
+            </div>              
+            <div class="divider"></div> <!-- DaisyUI divider -->
+            <div class="card-actions justify-center">
+                <div class="badge badge-info badge-lg">
+                    <%= courseModule.assignment.total_points %> points
+                </div>
+            </div>
+        </div>
+    </div>
+<% } %>
