@@ -1,0 +1,51 @@
+<% /* Sidebar Menu EJS Template */ %>
+<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64">
+    <ul courseid="<%= courseId %>" id="course-tabs">
+        <% for (let i = 0; i < courseTabs.length; i++) { %>
+            <li id="<%= courseTabs[i].id %>" class="menu-item mb-2 draggable-item p-2 cursor-pointer" data-id="<%= i %>">
+                <a href="/course/<%= courseId %>/<%= courseTabs[i].id %>"><%= courseTabs[i].tab_name %></a>
+            </li>
+        <% } %>
+    </ul>
+    <% if (role === "teacher") { %>
+        <div class="center items-center justify-center">
+            <%- include('../components/create_coursetab_modal') %>
+        </div>
+    <% } %>
+</aside>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const role = '<%= role %>';
+        const courseTabsUl = document.getElementById('course-tabs');
+         if (role === "teacher") {
+            Sortable.create(courseTabsUl, {
+                animation: 150, // Animation speed (in ms)
+                ghostClass: 'bg-blue-100', // Class for the drop placeholder
+                dragClass: "opacity-50", // Class for the dragging item
+                onEnd: async (event) => {
+                    let itemOrder = {};
+                    const items = courseTabsUl.getElementsByTagName('li');
+                    const courseId = courseTabsUl.getAttribute("courseid");
+
+                    for (var i = 0; i < items.length; i++) {
+                        const databaseId = items[i].getAttribute("id");
+                        itemOrder[databaseId] = i;
+                    }
+
+                    const payload = await fetch("/update/coursetab/order", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            "order": itemOrder,
+                            "courseId": courseId
+                        })
+                    });
+                },
+            });
+        }
+    });
+</script>
