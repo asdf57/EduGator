@@ -1,21 +1,88 @@
 <% /* Sidebar Menu EJS Template */ %>
-<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64">
-    <ul courseid="<%= courseId %>" id="course-tabs">
+
+<%- include( '../components/error_modal' ) %>
+
+<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64 flex flex-col justify-between">
+    <!-- Scrollable list for course tabs -->
+    <ul courseid="<%= courseId %>" id="course-tabs" class="overflow-y-auto flex-1">
         <% for (let i = 0; i < courseTabs.length; i++) { %>
-            <li id="<%= courseTabs[i].id %>" class="menu-item mb-2 draggable-item p-2 cursor-pointer" data-id="<%= i %>">
-                <a href="/course/<%= courseId %>/<%= courseTabs[i].id %>"><%= courseTabs[i].tab_name %></a>
+            <li id="<%= courseTabs[i].id %>" class="menu-item mb-2 draggable-item p-2 cursor-pointer flex justify-between items-center" data-id="<%= i %>">
+                <a href="/course/<%= courseId %>/<%= courseTabs[i].id %>" class="truncate">
+                    <%= courseTabs[i].tab_name %>
+                </a>
+
+                <% if (role === "teacher" ) { %>
+                    <div class="flex items-center gap-2">
+                        <button onclick="updatecoursetabmodal.showModal()" class="p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
+                            <ion-icon name="pencil-outline"></ion-icon>
+                        </button>
+                        <button class="p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
+                            <ion-icon name="trash-outline"></ion-icon>
+                        </button>
+                    </div>
+                <% } %>
             </li>
         <% } %>
     </ul>
+
+    <!-- Adjusted Add button at the bottom -->
+    <div class="px-4 pt-2 pb-2">
+        <button class="btn btn-primary w-full" onclick="coursetabmodal.showModal()">Add</button>
+    </div>
+
     <% if (role === "teacher") { %>
-        <div class="center items-center justify-center">
+        <div class="hidden"> <!-- Hide the additional components container if not needed -->
             <%- include('../components/create_coursetab_modal') %>
         </div>
     <% } %>
 </aside>
 
+
+
+
+
+
+
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script>
+    const errorModal = document.getElementById("error-modal");
+    const errorText = document.getElementById("error-message");
+    
+    const deleteButtons = document.querySelectorAll("#course-tab-delete");
+
+    deleteButtons.forEach(button => {
+        button.addEventListener("click", async function(event) {
+            event.stopPropagation();
+
+            try {
+                // Get the id of the parent li element
+                const courseTabId = this.closest('li').id;
+
+                // POST request to delete the course tab
+                const payload = await fetch("/delete/coursetab", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        courseTabId: courseTabId
+                    })
+                });
+
+                if (!payload.ok) {
+                    throw new Error("Failed to delete course tab!");
+                }
+
+                window.location.reload();
+            } catch(error) {
+                console.log("Error caught:", error);
+                showErrorModal("Could not delete course tab due to error: " + error.message);
+            }
+        });
+
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
         const role = '<%= role %>';
         const courseTabsUl = document.getElementById('course-tabs');
