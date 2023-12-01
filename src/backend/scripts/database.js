@@ -350,6 +350,15 @@ async function getFileData(pool, fileId) {
     }
 }
 
+async function deleteCourseTab(pool, courseTabId) {
+    try {
+        const res = await pool.query(`DELETE FROM course_tabs WHERE id = $1`, [courseTabId]);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 module.exports = {
     getIdFromUsername,
     getAllEntriesFromRole,
@@ -368,5 +377,6 @@ module.exports = {
     isCourseModuleInDatabase,
     isCourseRouteValid,
     isUserEnrolledInCourse,
-    getFileData
+    getFileData,
+    deleteCourseTab
 };
