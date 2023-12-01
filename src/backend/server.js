@@ -447,12 +447,20 @@ app.post("/delete/:type", async (req, res) => {
 
     if (type === "coursemodule") {
       const courseModuleId = req.body.courseModuleId;
-      console.log("Got: ", courseModuleId);
       if (!courseModuleId) {
         return res.status(500).json({error: "Course module id is invalid!"});
       }
 
       await pool.query(`DELETE FROM course_modules WHERE id = $1`, [courseModuleId]);
+    }
+
+    if (type === "coursetab") {
+      const courseTabId = req.body.courseTabId;
+      if (!courseTabId) {
+        return res.status(500).json({error: "Course tab id is invalid!"});
+      }
+
+      await db.deleteCourseTab(pool, courseTabId);
     }
 
     return res.end();
@@ -525,6 +533,8 @@ async function createCourseTab(req, res) {
     if (!addCourseTabQuery) {
         return res.status(500).json({error: "Failed to add course tab!"});
     }
+
+    return res.end();
   } catch (error) {
     return res.status(500).json({error: error});
   }
@@ -624,9 +634,11 @@ app.post("/update/:entity/:type", async (req, res) => {
       }
 
       Object.entries(order).forEach(async ([courseTabId, order_id]) => {
-        const updateOrderQuery = await pool.query(`UPDATE course_tabs SET order_id=$1 WHERE id=$2 AND course_id=$3; `, [order_id, courseTabId, courseId]);
-        if (!updateOrderQuery) {
-          return res.status(500).json({error: "Failed to update course tab order!"});
+        if (await db.isCourseTabInDatabase(pool, courseTabId)) {
+          const updateOrderQuery = await pool.query(`UPDATE course_tabs SET order_id=$1 WHERE id=$2 AND course_id=$3; `, [order_id, courseTabId, courseId]);
+          if (!updateOrderQuery) {
+            return res.status(500).json({error: "Failed to update course tab order!"});
+          }
         }
       });
 
