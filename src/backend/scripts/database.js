@@ -337,6 +337,21 @@ async function isCourseRouteValid(pool, courseId, courseTabId, courseModuleId, f
     }
 }
 
+async function getCourseIdFromCourseTab(pool, courseTabId) {
+    try {
+        // Check that the student or teacher is enrolled in the course!
+        const query = await pool.query(`SELECT course_id FROM course_tabs WHERE id = $1`, [courseTabId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return undefined;
+        }
+
+        return query.rows[0].course_id;
+    } catch (error) {
+        console.log(error);
+        return undefined;
+    }
+}
+
 async function getFileData(pool, fileId) {
     try {
         const query = await pool.query(`SELECT * FROM files WHERE id = $1`, [fileId]);
@@ -355,6 +370,77 @@ async function deleteCourseTab(pool, courseTabId) {
         const res = await pool.query(`DELETE FROM course_tabs WHERE id = $1`, [courseTabId]);
         return true;
     } catch (error) {
+        return false;
+    }
+}
+
+async function isEntityInCourse(pool, username, role, courseId) {
+    try {
+        const userId = await getIdFromUsername(pool, username, role);
+        const query = await pool.query(`SELECT * FROM ${role}_courses WHERE ${role}_id = $1 AND course_id = $2`, [userId, courseId]);
+        if (!query || !query.rows || query.rows.length == 0) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function updateCourseTab(pool, courseTabId, tabName, auth) {
+    try {
+        if (auth.role !== 'teacher') {
+            return false;
+        }
+
+        const userId = await getIdFromUsername(pool, auth.username, auth.role);
+        if (!userId) {
+            return false;
+        }
+
+        const courses = await getCoursesContainingCourseTab(pool, courseTabId);
+        if (!courses) {
+            return false;
+        }
+
+        let isAuthorized = false;
+        for (const courseId of courses) {
+            if (await isTeacherAssociatedWithCourse(pool, userId, courseId)) {
+                isAuthorized = true;
+                break;
+            }
+        }
+
+        if (!isAuthorized) {
+            return false;
+        }
+
+        await pool.query(`UPDATE course_tabs SET tab_name = $1 WHERE id = $2;`, [tabName, courseTabId]);
+        return true;
+    } catch (error) {
+        console.error(error);
+        return false;
+    }
+}
+
+
+async function getCoursesContainingCourseTab(pool, courseTabId) {
+    try {
+        const res = await pool.query(`SELECT course_id FROM course_tabs WHERE id = $1;`, [courseTabId]);
+        return res.rows.map(row => row.course_id);
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
+}
+
+async function isTeacherAssociatedWithCourse(pool, teacherId, courseId) {
+    try {
+        const res = await pool.query(`SELECT * FROM teacher_courses WHERE teacher_id = $1 AND course_id = $2;`, [teacherId, courseId]);
+        return res.rowCount > 0;
+    } catch (error) {
+        console.error(error);
         return false;
     }
 }
@@ -378,5 +464,10 @@ module.exports = {
     isCourseRouteValid,
     isUserEnrolledInCourse,
     getFileData,
-    deleteCourseTab
+    deleteCourseTab,
+    getCourseIdFromCourseTab,
+    isEntityInCourse,
+    updateCourseTab,
+    getCoursesContainingCourseTab,
+    isTeacherAssociatedWithCourse
 };
