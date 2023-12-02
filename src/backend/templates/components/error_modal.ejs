@@ -1,16 +1,17 @@
 <div id="error-modal" class="modal">
-    <div class="modal-box">
-        <h3 class="font-bold text-lg"></h3>
-        <p class="py-4" id="error-message"></p>
-        <div class="modal-action">
-            <label for="error-modal" class="btn">Close</label>
-        </div>
-    </div>
+  <div class="modal-box">
+      <h3 class="font-bold text-lg"></h3>
+      <p class="py-4" id="error-message"></p>
+      <div class="modal-action">
+          <!-- Added an ID to the label for easy targeting -->
+          <label for="error-modal" class="btn" id="close-modal-btn">Close</label>
+      </div>
+  </div>
 </div>
 
 
-<script>
 
+<script>
 function showErrorModal(message) {
   const modal = document.getElementById('error-modal');
   const errorMessageDiv = document.getElementById('error-message');
@@ -20,7 +21,11 @@ function showErrorModal(message) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const modal = document.getElementById('error-modal');
-  const openModalBtn = document.getElementById('open-modal-btn');
+  const closeModalBtn = document.getElementById('close-modal-btn');
+
+  closeModalBtn.addEventListener('click', () => {
+    modal.classList.remove('modal-open');
+  });
 
   window.addEventListener('click', (event) => {
     if (event.target === modal) {

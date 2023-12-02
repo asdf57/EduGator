@@ -16,7 +16,7 @@
                         <button onclick="updatecoursetabmodal.showModal()" class="p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
                             <ion-icon name="pencil-outline"></ion-icon>
                         </button>
-                        <button class="p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
+                        <button class="course-tab-delete p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
                             <ion-icon name="trash-outline"></ion-icon>
                         </button>
                     </div>
@@ -37,19 +37,11 @@
     <% } %>
 </aside>
 
-
-
-
-
-
-
-
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script>
     const errorModal = document.getElementById("error-modal");
     const errorText = document.getElementById("error-message");
-    
-    const deleteButtons = document.querySelectorAll("#course-tab-delete");
+    const deleteButtons = document.querySelectorAll(".course-tab-delete");
 
     deleteButtons.forEach(button => {
         button.addEventListener("click", async function(event) {
