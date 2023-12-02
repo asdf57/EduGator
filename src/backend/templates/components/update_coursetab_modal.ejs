@@ -1,45 +1,47 @@
 <!-- Open the modal using ID.showModal() method -->
 
 <dialog id="coursetabmodal" class="modal">
-    <div class="modal-box">
-      <h3 class="font-bold text-lg">Update Course Tab</h3>
-  
-      <label class="label">
-          <span class="label-text">New Tab Name</span>
-      </label>
-      <input id="tabname" type="text" placeholder="Tab" class="input input-bordered w-full" name="<%= courseId %>" required>
-      <button id="update-tab" type="submit" class="btn btn-primary w-full">Update</button>
-  
-    </div>
-    <form method="dialog" class="modal-backdrop">
-      <button>close</button>
-    </form>
-  </dialog>
-  
-  <script>
-    const updateButton = document.getElementById("update-tab");
-    const tabName = document.getElementById("tabname");
-  
-    updateButton.addEventListener("click", async function() {
-            const courseId = tabName.getAttribute("name");
-            const courseTabId = ...;
-            const payload = await fetch("/update/coursetab", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    courseTabId: tabName.value,
-                    tabName: courseId
-                })
-            });
-  
-            // if (!payload.ok)
-            //   throw Exception;
-  
-            console.log("dsfdsg");
-  
-            window.location.reload();
-  
-    });
-  </script>
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Add Course Tab</h3>
+
+    <label class="label">
+        <span class="label-text">Tab Name</span>
+    </label>
+    <input id="tabname" type="text" placeholder="Tab" class="input input-bordered w-full" name="<%= courseId %>" required>
+    <button id="add-tab" type="submit" class="btn btn-primary w-full">Add</button>
+
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+<script>
+  const addButton = document.getElementById("add-tab");
+  const tabName = document.getElementById("tabname");
+  const courseTabs = document.getElementById("course-tabs");
+
+  addButton.addEventListener("click", async function(event) {
+    event.stopPropagation();
+    try {
+      const courseId = tabName.getAttribute("name");
+      const payload = await fetch("/create/coursetab", {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+              "tabName": tabName.value,
+              "courseId": courseId
+          })
+      });
+
+      if (!payload.ok)
+        throw Exception;
+
+      window.location.reload(true);
+    } catch(error) {
+      console.log("Error caught:", error);
+    }
+  });
+</script>
