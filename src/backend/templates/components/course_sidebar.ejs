@@ -13,7 +13,7 @@
 
                 <% if (role === "teacher" ) { %>
                     <div class="flex items-center gap-2">
-                        <button onclick="updatecoursetabmodal.showModal()" class="p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
+                        <button class="course-tab-update p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
                             <ion-icon name="pencil-outline"></ion-icon>
                         </button>
                         <button class="course-tab-delete p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
@@ -27,13 +27,11 @@
 
     <!-- Adjusted Add button at the bottom -->
     <div class="px-4 pt-2 pb-2">
-        <button class="btn btn-primary w-full" onclick="coursetabmodal.showModal()">Add</button>
+        <button id="course-tab-add-btn" class="btn btn-primary w-full">Add</button>
     </div>
 
     <% if (role === "teacher") { %>
-        <div class="hidden"> <!-- Hide the additional components container if not needed -->
-            <%- include('../components/create_coursetab_modal') %>
-        </div>
+        <%- include('../components/coursetab_modal') %>
     <% } %>
 </aside>
 
@@ -42,11 +40,23 @@
     const errorModal = document.getElementById("error-modal");
     const errorText = document.getElementById("error-message");
     const deleteButtons = document.querySelectorAll(".course-tab-delete");
+    const updateButtons = document.querySelectorAll(".course-tab-update");
+    const courseTabAddButton = document.getElementById("course-tab-add-btn");
 
+    courseTabAddButton.addEventListener("click", async function(event) {
+        event.stopPropagation();
+        try {
+            setupCourseTabModal({ courseId: "<%= courseId %>", courseTabName: "", courseTabId: "", action: 'add' });
+        } catch(error) {
+            console.log(error);
+            showErrorModal("Could not create course tab due to error: " + error.message);
+        }
+    });
+
+    //Delete buttons logic
     deleteButtons.forEach(button => {
         button.addEventListener("click", async function(event) {
             event.stopPropagation();
-
             try {
                 // Get the id of the parent li element
                 const courseTabId = this.closest('li').id;
@@ -72,9 +82,36 @@
                 showErrorModal("Could not delete course tab due to error: " + error.message);
             }
         });
-
     });
 
+    //Update buttons logic
+    updateButtons.forEach(button => {
+        button.addEventListener("click", async function(event) {
+            event.stopPropagation();
+            try {
+                const courseTabLi = this.closest('li');
+                if (!courseTabLi) {
+                    throw new Error("No associated list item found");
+                }
+
+                const courseTabId = courseTabLi.id;
+
+                const courseTabAnchor = courseTabLi.querySelector('a');
+                if (!courseTabAnchor) {
+                    throw new Error("No associated anchor tag found");
+                }
+
+                const content = courseTabAnchor.innerText;
+
+                setupCourseTabModal({ courseId: "<%= courseId %>", courseTabName: content, courseTabId: courseTabId, action: 'update' });
+            } catch(error) {
+                console.log("Error caught:", error);
+                showErrorModal("Could not update course tab due to error: " + error.message);
+            }
+        });
+    });
+
+    //Sortable logic for moving course tabs
     document.addEventListener('DOMContentLoaded', () => {
         const role = '<%= role %>';
         const courseTabsUl = document.getElementById('course-tabs');
