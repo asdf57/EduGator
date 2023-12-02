@@ -446,6 +446,10 @@ app.post("/delete/:type", async (req, res) => {
     }
 
     if (type === "coursemodule") {
+      if (req.session.role != LoginType.Teacher) {
+        return res.status(400).json({error: "Role cannot delete course modules!"});
+      }
+
       const courseModuleId = req.body.courseModuleId;
       if (!courseModuleId) {
         return res.status(500).json({error: "Course module id is invalid!"});
@@ -455,9 +459,24 @@ app.post("/delete/:type", async (req, res) => {
     }
 
     if (type === "coursetab") {
+      if (req.session.role != LoginType.Teacher) {
+        return res.status(400).json({error: "Role cannot delete course tabs!"});
+      }
+
       const courseTabId = req.body.courseTabId;
       if (!courseTabId) {
         return res.status(500).json({error: "Course tab id is invalid!"});
+      }
+
+      const courseId = await db.getCourseIdFromCourseTab(pool, courseTabId)
+      if (!courseId) {
+        return res.status(500).json({error: "Could not find course id from course tab!"});
+      }
+
+      //Check if teacher is in this course
+      console.log(req.session.username, req.session.role, courseId);
+      if (! await db.isEntityInCourse(pool, req.session.username, req.session.role, courseId)) {
+        return res.status(400).json({error: "Teacher is not enrolled in the required course!"});
       }
 
       await db.deleteCourseTab(pool, courseTabId);
@@ -563,6 +582,31 @@ async function createCourseModule(req, res) {
   return res.end();
 }
 
+app.post("/update/coursetab", async (req, res) => {
+  try {
+    const tabName = req.body.tabName;
+    const courseTabId = req.body.courseTabId;
+
+    if (!tabName || typeof tabName !== "string") {
+      return res.status(400).json({error: "tabName specified is invalid!"});
+    }
+    
+    if (!courseTabId || typeof courseTabId !== "string") {
+      return res.status(400).json({error: "courseTabId specified is invalid!"});
+    }
+
+    auth = {username: req.session.username, role: req.session.role};
+
+    if (! await db.updateCourseTab(pool, courseTabId, tabName, auth)) {
+      return res.status(500).json({error: "Could not update course tab!"});
+    }
+
+    return res.end();
+  } catch (error) {
+    return res.status(500).json({error: error});
+  }
+});
+
 app.post("/update/:entity/:type", async (req, res) => {
   try {
     const entity = req.params.entity;
@@ -643,22 +687,6 @@ app.post("/update/:entity/:type", async (req, res) => {
       });
 
       return res.send();
-    }
-  } catch (error) {
-    return res.status(500).json({error: error});
-  }
-});
-
-app.post("/update/coursetab/:item", async (req, res) => {
-  try {
-    const item = req.params.item;
-
-    if (!item || typeof item !== "string") {
-      return res.status(400).json({error: "Item specified is invalid!"});
-    }
-
-    if (item === "order") {
-      
     }
   } catch (error) {
     return res.status(500).json({error: error});
