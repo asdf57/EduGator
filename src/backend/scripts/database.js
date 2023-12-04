@@ -80,6 +80,7 @@ async function getCourseModule(pool, courseModuleId) {
         );
 
         if (!moduleQuery || !moduleQuery.rows || moduleQuery.rows.length === 0) {
+            console.log(`getCourseModule - Couldn't find course module entry with id ${courseModuleId}!`);
             return [];
         }
 
@@ -185,9 +186,10 @@ async function isFileInDatabase(pool, fileId) {
 
 async function createCourseModule(courseModulePayload, pool) {
     try {
-        const { title, description, enableSubmissions, hasAssignment, dueDate, points, attachedFileIds }  = courseModulePayload;
+        const { title, description, hasAssignment, dueDate, points, attachedFileIds }  = courseModulePayload;
 
-        if ([title, description, enableSubmissions, hasAssignment, attachedFileIds].includes(undefined)) {
+        if ([title, description, hasAssignment, attachedFileIds].includes(undefined)) {
+            console.log("createCourseModule - Missing required value: " + [title, description, hasAssignment, attachedFileIds]);
             return undefined;
         }
 
@@ -195,6 +197,7 @@ async function createCourseModule(courseModulePayload, pool) {
         const idQuery = await pool.query(`INSERT INTO course_modules (title, description, visibility) VALUES ($1, $2, $3) RETURNING id`, [title, description, true]);
 
         if (!idQuery || !idQuery.rows || idQuery.rows.length == 0) {
+            console.log("createCourseModule - No id was returned!");
             return undefined;
         }
 
@@ -207,6 +210,7 @@ async function createCourseModule(courseModulePayload, pool) {
 
         if (hasAssignment) {
             if ([dueDate, points].includes(undefined)) {
+                console.log("createCourseModule - Assignment missing required field: " + [dueDate, points]);
                 return undefined;
             }
 
@@ -221,6 +225,66 @@ async function createCourseModule(courseModulePayload, pool) {
 
 }
 
+async function updateCourseModule(pool, courseModuleId, updatePayload) {
+    try {
+        const { title, description, hasAssignment, dueDate, points, attachedFileIds } = updatePayload;
+
+        if (!courseModuleId) {
+            console.log("updateCourseModule - Missing courseModuleId");
+            return false;
+        }
+
+        const attachedFileIdsArray = Object.values(attachedFileIds || {});
+
+        let updateFields = [];
+        let updateValues = [];
+        if (title) {
+            updateFields.push('title = $1');
+            updateValues.push(title);
+        }
+        if (description) {
+            updateFields.push('description = $2');
+            updateValues.push(description);
+        }
+        if (updateFields.length > 0) {
+            let updateQuery = `UPDATE course_modules SET ${updateFields.join(', ')} WHERE id = $${updateValues.length + 1}`;
+            updateValues.push(courseModuleId);
+            await pool.query(updateQuery, updateValues);
+        }
+
+        const assignmentExistsQuery = await pool.query(`SELECT * FROM assignments WHERE module_id = $1`, [courseModuleId]);
+        const assignmentExists = assignmentExistsQuery.rows.length > 0;
+
+        if (hasAssignment) {
+            if (!assignmentExists) {
+                await pool.query(`INSERT INTO assignments (module_id, due_date, total_points) VALUES ($1, $2, $3)`, [courseModuleId, dueDate, points]);
+            } else {
+                await pool.query(`UPDATE assignments SET due_date = $1, total_points = $2 WHERE module_id = $3`, [dueDate, points, courseModuleId]);
+            }
+        } else if (assignmentExists) {
+            await pool.query(`DELETE FROM assignments WHERE module_id = $1`, [courseModuleId]);
+        }
+
+        console.log(attachedFileIdsArray);
+
+        if (attachedFileIdsArray && attachedFileIdsArray.length > 0) {
+            for (const fileId of attachedFileIdsArray) {
+                console.log("Evaluating file " + fileId)
+                if (!await isFileInDatabase(pool, fileId)) {
+                    console.log(`updateCourseModule - File with ID ${fileId} does not exist`);
+                    continue;
+                }
+                await pool.query(`INSERT INTO course_module_files (course_module_id, file_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [courseModuleId, fileId]);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.log(`updateCourseModule - Error: ${error}`);
+        return false;
+    }
+}
+  
 async function isFileAssociatedWithCourseModule(pool, courseModuleId, fileId) {
     try {
         const query = await pool.query(`SELECT * FROM course_module_files WHERE course_module_id = $1 AND file_id = $2`, [courseModuleId, fileId]);
@@ -469,5 +533,6 @@ module.exports = {
     isEntityInCourse,
     updateCourseTab,
     getCoursesContainingCourseTab,
-    isTeacherAssociatedWithCourse
+    isTeacherAssociatedWithCourse,
+    updateCourseModule
 };
