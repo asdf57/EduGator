@@ -274,8 +274,6 @@ app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res)
     const courseModuleId = req.params.courseModuleId;
     const fileId = req.params.fileId;
 
-    console.log(req.params);
-
     //General way to verify all course route parameters are non-empty & valid!
     if (! await db.isCourseRouteValid(pool, courseId, courseTabId, courseModuleId, fileId)) {
       return res.status(500).json({error: "Invalid parameters specified!"});
@@ -303,6 +301,15 @@ app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res)
     return res.end(fileData.file_data);
   } catch (error) {
     return res.status(500).json({error: "Error while retrieving file!"});
+  }
+});
+
+app.get("/coursemodule/:courseModuleId", async (req,res) => {
+  try {
+    const courseModuleId = req.params.courseModuleId;
+    return res.json(await db.getCourseModule(pool, courseModuleId))
+  } catch (error) {
+    return res.status(500).json({error: error});
   }
 });
 
@@ -474,7 +481,6 @@ app.post("/delete/:type", async (req, res) => {
       }
 
       //Check if teacher is in this course
-      console.log(req.session.username, req.session.role, courseId);
       if (! await db.isEntityInCourse(pool, req.session.username, req.session.role, courseId)) {
         return res.status(400).json({error: "Teacher is not enrolled in the required course!"});
       }
@@ -606,6 +612,27 @@ app.post("/update/coursetab", async (req, res) => {
     return res.status(500).json({error: error});
   }
 });
+
+app.post("/update/coursemodule", async (req, res) => {
+  try {
+      const { courseModuleId } = req.body;
+
+      if (!courseModuleId) {
+          return res.status(400).json({ error: "courseModuleId is required" });
+      }
+
+      const updated = await db.updateCourseModule(pool, courseModuleId, req.body);
+      if (!updated) {
+          return res.status(500).json({ error: "Failed to update course module" });
+      }
+
+      return res.json({ message: "Course module updated successfully" });
+  } catch (error) {
+      console.error(`Error in /update/coursemodule: ${error}`);
+      return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 app.post("/update/:entity/:type", async (req, res) => {
   try {
