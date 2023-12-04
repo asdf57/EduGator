@@ -307,7 +307,8 @@ app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res)
 app.get("/coursemodule/:courseModuleId", async (req,res) => {
   try {
     const courseModuleId = req.params.courseModuleId;
-    return res.json(await db.getCourseModule(pool, courseModuleId))
+    auth = {username: req.session.username, role: req.session.role};
+    return res.json(await db.getCourseModule(pool, courseModuleId, auth));
   } catch (error) {
     return res.status(500).json({error: error});
   }
@@ -318,6 +319,7 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     const courseId = req.params.courseId;
     const courseTabId = req.params.courseTab;
     const courseModuleId = req.params.courseModuleId;
+    const auth = {username: req.session.username, role: req.session.role};
 
     if (req.session.role === LoginType.Admin) {
       return res.status(401).json({error: "Admin role cannot access courses!"});
@@ -371,7 +373,7 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     const courseTab = courseTabsQuery.rows.find(item => item.id == courseTabId);
 
     if (courseModuleId) {
-      const courseModule = await db.getCourseModule(pool, courseModuleId);
+      const courseModule = await db.getCourseModule(pool, courseModuleId, auth);
       return res.render("pages/course_module", {
         username: req.session.username,
         role: req.session.role,
