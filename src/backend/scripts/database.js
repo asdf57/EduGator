@@ -70,8 +70,44 @@ async function isCourseTabInDatabase(pool, courseTabId) {
     }
 }
 
-async function getCourseModule(pool, courseModuleId) {
+async function getCourseModule(pool, courseModuleId, auth) {
     try {
+        // Authorization check: Ensure the user is a teacher
+        if (auth.role !== 'teacher') {
+            console.log('Unauthorized access attempt by non-teacher');
+            return [];
+        }
+
+        // Get the teacher's ID from their username
+        const teacherId = await getIdFromUsername(pool, auth.username, auth.role);
+        if (!teacherId) {
+            console.log('Could not find teacher ID for the provided username');
+            return [];
+        }
+
+        // Find the course ID associated with the course module
+        const courseIdQuery = await pool.query(`
+            SELECT course_id
+            FROM course_tabs
+            JOIN tab_course_module ON course_tabs.id = tab_course_module.tab_id
+            WHERE course_module_id = $1`,
+            [courseModuleId]
+        );
+
+        if (courseIdQuery.rows.length === 0) {
+            console.log('No course associated with the provided course module');
+            return [];
+        }
+
+        const courseId = courseIdQuery.rows[0].course_id;
+
+        // Check if the teacher is enrolled in the course
+        if (!await isTeacherAssociatedWithCourse(pool, teacherId, courseId)) {
+            console.log('Teacher is not associated with the course of the module');
+            return [];
+        }
+
+        // Fetch the course module
         const moduleQuery = await pool.query(`
             SELECT *
             FROM course_modules
@@ -86,7 +122,7 @@ async function getCourseModule(pool, courseModuleId) {
 
         const courseModule = moduleQuery.rows[0];
 
-        // Fetch and attach files for module
+        // Fetch and attach files for the module
         const fileQuery = await pool.query(`
             SELECT f.file_name, f.file_type, f.file_size, f.id
             FROM files AS f 
@@ -105,7 +141,7 @@ async function getCourseModule(pool, courseModuleId) {
 
         return courseModule;
     } catch (error) {
-        console.log(`Error while getting course modules from course tab: ${error}`);
+        console.log(`Error while getting course module: ${error}`);
         return [];
     }
 }
