@@ -8,8 +8,10 @@
         <span class="label-text">Tab Name</span>
     </label>
     <input id="tabname" type="text" placeholder="Tab" class="input input-bordered w-full" name="<%= courseId %>" required>
-    <button id="add-tab" type="submit" class="btn btn-primary w-full">Add</button>
 
+    <% if (role === "teacher") { %>
+      <button id="add-tab" type="submit" class="btn btn-primary w-full">Add</button>
+    <% } %>
   </div>
   <form method="dialog" class="modal-backdrop">
     <button>close</button>
