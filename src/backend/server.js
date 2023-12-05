@@ -274,8 +274,6 @@ app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res)
     const courseModuleId = req.params.courseModuleId;
     const fileId = req.params.fileId;
 
-    console.log(req.params);
-
     //General way to verify all course route parameters are non-empty & valid!
     if (! await db.isCourseRouteValid(pool, courseId, courseTabId, courseModuleId, fileId)) {
       return res.status(500).json({error: "Invalid parameters specified!"});
@@ -306,11 +304,22 @@ app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res)
   }
 });
 
+app.get("/coursemodule/:courseModuleId", async (req,res) => {
+  try {
+    const courseModuleId = req.params.courseModuleId;
+    auth = {username: req.session.username, role: req.session.role};
+    return res.json(await db.getCourseModule(pool, courseModuleId, auth));
+  } catch (error) {
+    return res.status(500).json({error: error});
+  }
+});
+
 app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
   try {
     const courseId = req.params.courseId;
     const courseTabId = req.params.courseTab;
     const courseModuleId = req.params.courseModuleId;
+    const auth = {username: req.session.username, role: req.session.role};
 
     if (req.session.role === LoginType.Admin) {
       return res.status(401).json({error: "Admin role cannot access courses!"});
@@ -364,7 +373,7 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     const courseTab = courseTabsQuery.rows.find(item => item.id == courseTabId);
 
     if (courseModuleId) {
-      const courseModule = await db.getCourseModule(pool, courseModuleId);
+      const courseModule = await db.getCourseModule(pool, courseModuleId, auth);
       return res.render("pages/course_module", {
         username: req.session.username,
         role: req.session.role,
@@ -446,13 +455,39 @@ app.post("/delete/:type", async (req, res) => {
     }
 
     if (type === "coursemodule") {
+      if (req.session.role != LoginType.Teacher) {
+        return res.status(400).json({error: "Role cannot delete course modules!"});
+      }
+
       const courseModuleId = req.body.courseModuleId;
-      console.log("Got: ", courseModuleId);
       if (!courseModuleId) {
         return res.status(500).json({error: "Course module id is invalid!"});
       }
 
       await pool.query(`DELETE FROM course_modules WHERE id = $1`, [courseModuleId]);
+    }
+
+    if (type === "coursetab") {
+      if (req.session.role != LoginType.Teacher) {
+        return res.status(400).json({error: "Role cannot delete course tabs!"});
+      }
+
+      const courseTabId = req.body.courseTabId;
+      if (!courseTabId) {
+        return res.status(500).json({error: "Course tab id is invalid!"});
+      }
+
+      const courseId = await db.getCourseIdFromCourseTab(pool, courseTabId)
+      if (!courseId) {
+        return res.status(500).json({error: "Could not find course id from course tab!"});
+      }
+
+      //Check if teacher is in this course
+      if (! await db.isEntityInCourse(pool, req.session.username, req.session.role, courseId)) {
+        return res.status(400).json({error: "Teacher is not enrolled in the required course!"});
+      }
+
+      await db.deleteCourseTab(pool, courseTabId);
     }
 
     return res.end();
@@ -525,6 +560,8 @@ async function createCourseTab(req, res) {
     if (!addCourseTabQuery) {
         return res.status(500).json({error: "Failed to add course tab!"});
     }
+
+    return res.end();
   } catch (error) {
     return res.status(500).json({error: error});
   }
@@ -552,6 +589,52 @@ async function createCourseModule(req, res) {
 
   return res.end();
 }
+
+app.post("/update/coursetab", async (req, res) => {
+  try {
+    const tabName = req.body.tabName;
+    const courseTabId = req.body.courseTabId;
+
+    if (!tabName || typeof tabName !== "string") {
+      return res.status(400).json({error: "tabName specified is invalid!"});
+    }
+    
+    if (!courseTabId || typeof courseTabId !== "string") {
+      return res.status(400).json({error: "courseTabId specified is invalid!"});
+    }
+
+    auth = {username: req.session.username, role: req.session.role};
+
+    if (! await db.updateCourseTab(pool, courseTabId, tabName, auth)) {
+      return res.status(500).json({error: "Could not update course tab!"});
+    }
+
+    return res.end();
+  } catch (error) {
+    return res.status(500).json({error: error});
+  }
+});
+
+app.post("/update/coursemodule", async (req, res) => {
+  try {
+      const { courseModuleId } = req.body;
+
+      if (!courseModuleId) {
+          return res.status(400).json({ error: "courseModuleId is required" });
+      }
+
+      const updated = await db.updateCourseModule(pool, courseModuleId, req.body);
+      if (!updated) {
+          return res.status(500).json({ error: "Failed to update course module" });
+      }
+
+      return res.json({ message: "Course module updated successfully" });
+  } catch (error) {
+      console.error(`Error in /update/coursemodule: ${error}`);
+      return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 app.post("/update/:entity/:type", async (req, res) => {
   try {
@@ -624,29 +707,15 @@ app.post("/update/:entity/:type", async (req, res) => {
       }
 
       Object.entries(order).forEach(async ([courseTabId, order_id]) => {
-        const updateOrderQuery = await pool.query(`UPDATE course_tabs SET order_id=$1 WHERE id=$2 AND course_id=$3; `, [order_id, courseTabId, courseId]);
-        if (!updateOrderQuery) {
-          return res.status(500).json({error: "Failed to update course tab order!"});
+        if (await db.isCourseTabInDatabase(pool, courseTabId)) {
+          const updateOrderQuery = await pool.query(`UPDATE course_tabs SET order_id=$1 WHERE id=$2 AND course_id=$3; `, [order_id, courseTabId, courseId]);
+          if (!updateOrderQuery) {
+            return res.status(500).json({error: "Failed to update course tab order!"});
+          }
         }
       });
 
       return res.send();
-    }
-  } catch (error) {
-    return res.status(500).json({error: error});
-  }
-});
-
-app.post("/update/coursetab/:item", async (req, res) => {
-  try {
-    const item = req.params.item;
-
-    if (!item || typeof item !== "string") {
-      return res.status(400).json({error: "Item specified is invalid!"});
-    }
-
-    if (item === "order") {
-      
     }
   } catch (error) {
     return res.status(500).json({error: error});

@@ -1,0 +1,78 @@
+<!-- Open the modal using ID.showModal() method -->
+
+<dialog id="coursetabmodal" class="modal">
+  <div class="modal-box">
+    <h3 id="course-tab-modal-title" class="font-bold text-lg"></h3>
+
+    <label class="label">
+        <span class="label-text"></span>
+    </label>
+    <input id="tabname" type="text" placeholder="Tab" class="input input-bordered w-full" name="<%= courseId %>" required>
+    <button id="course-tab-btn" type="submit" class="btn btn-primary w-full">Add</button>
+
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+<script>
+  const actionButton = document.getElementById("course-tab-btn");
+
+  function setupCourseTabModal({ courseId, courseTabId = '', courseTabName, action = 'add' }) {
+    const modal = document.getElementById('coursetabmodal');
+    const title = document.getElementById('course-tab-modal-title');
+    const tabName = document.getElementById("tabname");
+
+    // Set modal title and button text based on the action
+    if (action === 'add') {
+      title.textContent = 'Add Course Tab';
+      actionButton.textContent = 'Add';
+      tabName.value = "";
+    } else {
+      title.textContent = 'Update Course Tab';
+      actionButton.textContent = 'Update';
+      tabName.value = courseTabName;
+    }
+
+    actionButton.onclick = async function(event) {
+      try {
+        event.preventDefault();
+        const endpoint = action === 'add' ? '/create/coursetab' : '/update/coursetab';
+        const courseId = tabName.getAttribute("name");
+
+        let payload = {};
+        if (action === "add") {
+          payload = JSON.stringify({
+            "tabName": tabName.value,
+            "courseId": courseId
+          })
+        } else {
+          payload = JSON.stringify({
+            "tabName": tabName.value,
+            "courseTabId": courseTabId
+          })
+        }
+
+        const res = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: payload
+        });
+
+        if (!res.ok){
+          throw new Error("Bad request!");
+        }
+
+        window.location.reload(true);
+    } catch(error) {
+        console.log("Error caught:", error);
+    }
+  };
+
+    modal.showModal();
+}
+
+</script>

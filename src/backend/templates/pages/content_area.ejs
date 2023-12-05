@@ -9,6 +9,7 @@
 </head>
 
 <body>
+  <%- include( '../components/error_modal' ) %>
   <%- include( '../components/header' ) %>
     <%- include( '../components/sidebar' ) %>
       <div class="flex">
@@ -29,10 +30,15 @@
                         <%- include('../components/course_module', {courseModule: courseModules[i]}) %>
                       </div>
 
-                      <% if (role==="teacher" ) { %>
-                        <button id="course-module-delete" onclick="deleteCourseModule('<%= courseModules[i].id %>')" class="pr-4">
-                          <ion-icon name="trash-outline"></ion-icon>
-                        </button>
+                      <% if (role === "teacher" ) { %>
+                        <div class="flex items-center pr-4">
+                          <button id="course-module-delete" onclick="deleteCourseModule('<%= courseModules[i].id %>')" class="hover:bg-indigo-800 rounded p-2">
+                              <ion-icon name="trash-outline"></ion-icon>
+                          </button>
+                          <button id="course-module-update" class="hover:bg-indigo-800 rounded p-2">
+                              <ion-icon name="pencil-outline"></ion-icon>
+                          </button>
+                      </div>
                       <% } %>
                     </div>
                   </li>
@@ -42,7 +48,7 @@
 
             <% if (role==="teacher" ) { %>
               <div class="flex items-center justify-center p-5">
-                <%- include('../components/create_course_content_modal') %>
+                <%- include('../components/course_content_modal') %>
               </div>
             <% } %>
           </main>
@@ -52,12 +58,10 @@
       <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
       <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </body>
-
 </html>
 
 <script>
   function deleteCourseModule(courseModuleId) {
-    console.log("Deleting: ", courseModuleId);
     fetch('/delete/coursemodule', {
       method: 'POST',
       headers: {
@@ -80,6 +84,22 @@
     var currentUrl = window.location.href;
     var newUrl = currentUrl.endsWith('/') ? currentUrl + courseModuleId : currentUrl + '/' + courseModuleId; 
     window.location.href = newUrl;
+  }
+
+  //Obtains course module data
+  async function getModuleData(courseModuleId) {
+    try {
+        const response = await fetch(`/coursemodule/${courseModuleId}`);
+        if (!response.ok) {
+            throw new Error("Failed to obtain module data!");
+        }
+
+        const moduleData = await response.json();
+        return moduleData;
+    } catch (error) {
+        console.error(`Error while fetching course module data: ${error}`);
+        return null; // Or handle the error as needed
+    }
   }
 
   //Event listener for moving content areas around
@@ -110,5 +130,30 @@
         });
       },
     });
+
+    // Course module update buttons
+    const updateButtons = document.querySelectorAll("#course-module-update");
+      updateButtons.forEach(button => {
+          button.addEventListener("click", function(event) {
+              event.stopPropagation();
+
+              const moduleId = this.closest("li").getAttribute("coursemoduleid");
+              console.log("moduleId: " + moduleId);
+
+              (async () => {
+                  const moduleData = await getModuleData(moduleId);
+
+                  // Open the modal for update
+                  openCourseContentModal({
+                      courseId: "<%= courseId %>",
+                      courseModuleId: moduleId,
+                      moduleData: moduleData,
+                      action: 'update'
+                  });
+              })();
+        });
+    });
+
+
   });
 </script>
