@@ -73,7 +73,7 @@ async function isCourseTabInDatabase(pool, courseTabId) {
 async function getCourseModule(pool, courseModuleId, auth) {
     try {
         // Authorization check: Ensure the user is a teacher
-        if (auth.role !== 'teacher') {
+        if (auth.role === 'admin') {
             console.log('Unauthorized access attempt by non-teacher');
             return [];
         }
