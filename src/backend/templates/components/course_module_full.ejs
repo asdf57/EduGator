@@ -1,3 +1,4 @@
+<link href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" rel="stylesheet" />
 <div class="bg-gray-800 text-white p-5 rounded-md w-full md:w-1/2">
     <h1 class="text-xl font-semibold pb-5">
         <%= courseModule.title %>
@@ -10,17 +11,34 @@
             Attached files:
             <ul class="list-inside list-none">
                 <% courseModule.files.forEach(function(file) { %>
-                <li>
-                    <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
-                        <ion-icon name="document-outline"></ion-icon>
-                        <%= file.file_name %> (<%= file.file_size %> bytes)
-                    </a>
-                </li>
+                    <li>
+                        <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
+                            <ion-icon name="document-outline"></ion-icon>
+                            <%= file.file_name %> (<%= file.file_size %> bytes)
+                        </a>
+                    </li>
                 <% }); %>
             </ul>
         </div>
     <% } %>
-</div>
+
+    <!-- File selection input -->
+    <% if (role === "student") { %>
+    <label class="label">
+        <span class="label-text">Add Attachments</span>
+    </label>
+    <div class="container mx-auto my-10">
+        <form action="/upload/content" class="dropzone" id="myDropzone">
+            <div class="fallback">
+                <input name="file" type="file" multiple />
+                <button>Detach</button>
+            </div>
+            <div class="dz-message">
+                Drop files here or click to upload.
+            </div>
+        </form>
+    </div>
+    <% } %>
 
 <!-- File selection input -->
 <% if (role === "student") { %>
