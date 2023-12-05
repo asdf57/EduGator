@@ -771,6 +771,33 @@ app.post("/create/:type", async (req, res) => {
   }
 });
 
+app.get("/course/:courseId/:courseTabId/:courseModuleId/submissions", async (req, res) => {
+    // Ensure the user is authenticated and is a student
+    if (!req.session.isAuthenticated || req.session.role !== "student") {
+        return res.status(403).json({ error: "Unauthorized access." });
+    }
+
+    const { courseModuleId } = req.params;
+
+    try {
+        const submissionsQuery = `
+      SELECT sub.*, assign.due_date, assign.total_points, cm.title, stud.username AS student_username
+      FROM submissions sub
+      JOIN assignments assign ON sub.assignment_id = assign.id
+      JOIN course_modules cm ON assign.module_id = cm.id
+      JOIN student stud ON sub.student_id = stud.id
+      WHERE cm.id = $1;
+    `;
+
+        const results = await pool.query(submissionsQuery, [courseModuleId]);
+
+        res.json(results.rows);
+    } catch (error) {
+        console.error("Error querying submissions:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 app.post("/login", async (req, res) => {
   try {
     const { username, password, role } = req.body;

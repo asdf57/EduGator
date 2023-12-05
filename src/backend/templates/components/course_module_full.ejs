@@ -1,3 +1,4 @@
+<link href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" rel="stylesheet" />
 <div class="bg-gray-800 text-white p-5 rounded-md w-full md:w-1/2">
     <h1 class="text-xl font-semibold pb-5">
         <%= courseModule.title %>
@@ -10,17 +11,34 @@
             Attached files:
             <ul class="list-inside list-none">
                 <% courseModule.files.forEach(function(file) { %>
-                <li>
-                    <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
-                        <ion-icon name="document-outline"></ion-icon>
-                        <%= file.file_name %> (<%= file.file_size %> bytes)
-                    </a>
-                </li>
+                    <li>
+                        <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
+                            <ion-icon name="document-outline"></ion-icon>
+                            <%= file.file_name %> (<%= file.file_size %> bytes)
+                        </a>
+                    </li>
                 <% }); %>
             </ul>
         </div>
     <% } %>
-</div>
+
+    <!-- File selection input -->
+    <% if (role === "student") { %>
+    <label class="label">
+        <span class="label-text">Add Attachments</span>
+    </label>
+    <div class="container mx-auto my-10">
+        <form action="/upload/content" class="dropzone" id="myDropzone">
+            <div class="fallback">
+                <input name="file" type="file" multiple />
+                <button>Detach</button>
+            </div>
+            <div class="dz-message">
+                Drop files here or click to upload.
+            </div>
+        </form>
+    </div>
+    <% } %>
 
 <!-- Right column for Grading Information -->
 <% if(courseModule.assignment !== undefined) { %>
@@ -46,3 +64,58 @@
         </div>
     </div>
 <% } %>
+</div>
+
+<script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+
+<script>
+    // Initialize Dropzone on the form element
+    const myDropzone = new Dropzone("#myDropzone", {
+        url: "/upload/content",
+        paramName: "file",
+        maxFilesize: 20, // MB
+        parallelUploads: 20,
+        uploadMultiple: true,
+        autoProcessQueue: false,
+        addRemoveLinks: true,
+        init: function() {
+            this.on("addedfile", function(file) {
+            });
+            this.on("queuecomplete", function() {
+            });
+        }
+    });
+
+    document.querySelector("#myDropzone").addEventListener("submit", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (myDropzone.files.length) {
+            myDropzone.processQueue(); // Process all queued files
+        } else {
+            alert("Please select files to upload.");
+        }
+    });
+</script>
+
+<style>
+    .dropzone {
+        background: #2d3748;
+        border: 2px dashed #4a5568;
+    }
+
+    .dropzone .dz-message {
+        color: white;
+    }
+
+    .dropzone .dz-message button {
+        background: #4299e1;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+    }
+
+    .dropzone .dz-message button:hover {
+        background: #3182ce;
+    }
+</style>
