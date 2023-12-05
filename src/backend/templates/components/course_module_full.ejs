@@ -21,25 +21,7 @@
             </ul>
         </div>
     <% } %>
-
-    <!-- File selection input -->
-    <% if (role === "student") { %>
-    <label class="label">
-        <span class="label-text">Add Attachments</span>
-    </label>
-    <div class="container mx-auto my-10">
-        <form action="/upload/content" class="dropzone" id="myDropzone">
-            <div class="fallback">
-                <input name="file" type="file" multiple />
-                <button>Detach</button>
-            </div>
-            <div class="dz-message">
-                Drop files here or click to upload.
-            </div>
-        </form>
-    </div>
-    <% } %>
-
+    
 <!-- File selection input -->
 <% if (role === "student") { %>
     <label class="label">
