@@ -22,6 +22,24 @@
     <% } %>
 </div>
 
+<!-- File selection input -->
+<% if (role === "student") { %>
+    <label class="label">
+        <span class="label-text">Add Attachments</span>
+    </label>
+    <div class="container mx-auto my-10">
+        <form action="/upload/content" class="dropzone" id="myDropzone">
+            <div class="fallback">
+                <input name="file" type="file" multiple />
+                <button>Detach</button>
+            </div>
+            <div class="dz-message">
+                Drop files here or click to upload.
+            </div>
+        </form>
+    </div>
+<% } %>
+
 <!-- Right column for Grading Information -->
 <% if(courseModule.assignment !== undefined) { %>
     <div class="card bg-gray-700 text-white w-full md:w-96 shadow-2xl ml-4 rounded-md">
@@ -36,7 +54,7 @@
             <div class="flex items-center gap-2">
                 <ion-icon name="document-outline" style="font-size: 40px"></ion-icon>
                 <span>Type: Assignment</span>
-            </div>              
+            </div>
             <div class="divider"></div> <!-- DaisyUI divider -->
             <div class="card-actions justify-center">
                 <div class="badge badge-info badge-lg">
@@ -46,3 +64,58 @@
         </div>
     </div>
 <% } %>
+</div>
+
+<script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+
+<script>
+    // Initialize Dropzone on the form element
+    const myDropzone = new Dropzone("#myDropzone", {
+        url: "/upload/content",
+        paramName: "file",
+        maxFilesize: 20, // MB
+        parallelUploads: 20,
+        uploadMultiple: true,
+        autoProcessQueue: false,
+        addRemoveLinks: true,
+        init: function() {
+            this.on("addedfile", function(file) {
+            });
+            this.on("queuecomplete", function() {
+            });
+        }
+    });
+
+    document.querySelector("#myDropzone").addEventListener("submit", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (myDropzone.files.length) {
+            myDropzone.processQueue(); // Process all queued files
+        } else {
+            alert("Please select files to upload.");
+        }
+    });
+</script>
+
+<style>
+    .dropzone {
+        background: #2d3748;
+        border: 2px dashed #4a5568;
+    }
+
+    .dropzone .dz-message {
+        color: white;
+    }
+
+    .dropzone .dz-message button {
+        background: #4299e1;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+    }
+
+    .dropzone .dz-message button:hover {
+        background: #3182ce;
+    }
+</style>
