@@ -112,6 +112,28 @@
                   });
               },
           });
+          // Course module update buttons
+          const updateButtons = document.querySelectorAll("#course-module-update");
+          updateButtons.forEach(button => {
+              button.addEventListener("click", function(event) {
+                  event.stopPropagation();
+
+                  const moduleId = this.closest("li").getAttribute("coursemoduleid");
+                  console.log("moduleId: " + moduleId);
+
+                  (async () => {
+                      const moduleData = await getModuleData(moduleId);
+
+                      // Open the modal for update
+                      openCourseContentModal({
+                          courseId: "<%= courseId %>",
+                          courseModuleId: moduleId,
+                          moduleData: moduleData,
+                          action: 'update'
+                      });
+                  })();
+              });
+          });
       }
   });
 </script>
