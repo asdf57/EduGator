@@ -1,21 +1,117 @@
 <% /* Sidebar Menu EJS Template */ %>
-<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64">
-    <ul courseid="<%= courseId %>" id="course-tabs">
+
+<%- include( '../components/error_modal' ) %>
+
+<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64 flex flex-col justify-between">
+    <!-- Scrollable list for course tabs -->
+    <ul courseid="<%= courseId %>" id="course-tabs" class="overflow-y-auto flex-1">
         <% for (let i = 0; i < courseTabs.length; i++) { %>
-            <li id="<%= courseTabs[i].id %>" class="menu-item mb-2 draggable-item p-2 cursor-pointer" data-id="<%= i %>">
-                <a href="/course/<%= courseId %>/<%= courseTabs[i].id %>"><%= courseTabs[i].tab_name %></a>
+            <li id="<%= courseTabs[i].id %>" class="menu-item mb-2 draggable-item p-2 cursor-pointer flex justify-between items-center" data-id="<%= i %>">
+                <a href="/course/<%= courseId %>/<%= courseTabs[i].id %>" class="truncate">
+                    <%= courseTabs[i].tab_name %>
+                </a>
+
+                <% if (role === "teacher" ) { %>
+                    <div class="flex items-center gap-2">
+                        <button class="course-tab-update p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
+                            <ion-icon name="pencil-outline"></ion-icon>
+                        </button>
+                        <button class="course-tab-delete p-2 text-sm focus:shadow-outline hover:bg-indigo-800 rounded">
+                            <ion-icon name="trash-outline"></ion-icon>
+                        </button>
+                    </div>
+                <% } %>
             </li>
         <% } %>
     </ul>
+
+    <!-- Adjusted Add button at the bottom -->
+    <div class="px-4 pt-2 pb-2">
+        <button id="course-tab-add-btn" class="btn btn-primary w-full">Add</button>
+    </div>
+
     <% if (role === "teacher") { %>
-        <div class="center items-center justify-center">
-            <%- include('../components/create_coursetab_modal') %>
-        </div>
+        <%- include('../components/coursetab_modal') %>
     <% } %>
 </aside>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script>
+    const errorModal = document.getElementById("error-modal");
+    const errorText = document.getElementById("error-message");
+    const deleteButtons = document.querySelectorAll(".course-tab-delete");
+    const updateButtons = document.querySelectorAll(".course-tab-update");
+    const courseTabAddButton = document.getElementById("course-tab-add-btn");
+
+    courseTabAddButton.addEventListener("click", async function(event) {
+        event.stopPropagation();
+        try {
+            setupCourseTabModal({ courseId: "<%= courseId %>", courseTabName: "", courseTabId: "", action: 'add' });
+        } catch(error) {
+            console.log(error);
+            showErrorModal("Could not create course tab due to error: " + error.message);
+        }
+    });
+
+    //Delete buttons logic
+    deleteButtons.forEach(button => {
+        button.addEventListener("click", async function(event) {
+            event.stopPropagation();
+            try {
+                // Get the id of the parent li element
+                const courseTabId = this.closest('li').id;
+
+                // POST request to delete the course tab
+                const payload = await fetch("/delete/coursetab", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        courseTabId: courseTabId
+                    })
+                });
+
+                if (!payload.ok) {
+                    throw new Error("Failed to delete course tab!");
+                }
+
+                window.location.reload();
+            } catch(error) {
+                console.log("Error caught:", error);
+                showErrorModal("Could not delete course tab due to error: " + error.message);
+            }
+        });
+    });
+
+    //Update buttons logic
+    updateButtons.forEach(button => {
+        button.addEventListener("click", async function(event) {
+            event.stopPropagation();
+            try {
+                const courseTabLi = this.closest('li');
+                if (!courseTabLi) {
+                    throw new Error("No associated list item found");
+                }
+
+                const courseTabId = courseTabLi.id;
+
+                const courseTabAnchor = courseTabLi.querySelector('a');
+                if (!courseTabAnchor) {
+                    throw new Error("No associated anchor tag found");
+                }
+
+                const content = courseTabAnchor.innerText;
+
+                setupCourseTabModal({ courseId: "<%= courseId %>", courseTabName: content, courseTabId: courseTabId, action: 'update' });
+            } catch(error) {
+                console.log("Error caught:", error);
+                showErrorModal("Could not update course tab due to error: " + error.message);
+            }
+        });
+    });
+
+    //Sortable logic for moving course tabs
     document.addEventListener('DOMContentLoaded', () => {
         const role = '<%= role %>';
         const courseTabsUl = document.getElementById('course-tabs');

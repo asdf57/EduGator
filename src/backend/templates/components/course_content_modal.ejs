@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <button id="create-content" class="btn" onclick="openCourseContentModal({ action: 'add' })">Add</button>
+    <dialog id="coursecontentmodal" class="modal">
+        <div class="modal-box text-center">
+            <h3 class="font-bold text-lg">Add Course Content</h3>
+
+            <!-- Module title input -->
+            <label class="label">
+                <span class="label-text">Module Title</span>
+            </label>
+            <input id="module-title" type="text" class="input input-bordered w-full" name="<%= courseId %>" required>
+
+            <!-- Module description input -->
+            <label class="label">
+                <span class="label-text">Module Description</span>
+            </label>
+            <div id="module-description" class="textarea textarea-bordered w-full"></div>
+
+            <!-- Add assignment -->
+            <label class="label">
+                <span class="label-text">Add Assignment</span>
+            </label>
+            <input id="add-assignment-input" type="checkbox" class="toggle" />
+
+            <!-- Set assignment due date -->
+            <div id="assn-due-date" class="form-control mb-4 hidden">
+                <label class="label">
+                    <span class="label-text">Due Date</span>
+                </label>
+                <input id="assn-due-date-input" type="date" class="input input-bordered w-full">
+            </div>
+
+            <!-- Set assignment points -->
+            <div id="assn-points" class="form-control mb-4 hidden">
+                <label class="label">
+                    <span class="label-text">Total Points</span>
+                </label>
+                <input id="assn-points-input" type="number" min="0" class="input input-bordered w-full" required>
+            </div>
+
+            <!-- File selection input -->
+            <label class="label">
+                <span class="label-text">Add Attachments</span>
+            </label>
+            <div class="container mx-auto my-10">
+                <form action="/upload/content" class="dropzone" id="myDropzone">
+                    <div class="fallback">
+                        <input name="file" type="file" multiple />
+                        <button>Detach</button>
+                    </div>
+                    <div class="dz-message">
+                        Drop files here or click to upload.
+                    </div>
+                </form>
+            </div>
+
+            <!-- Submit button -->
+            <button id="course-content-btn" class="btn">Create</button>
+        </div>
+
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- Scripts for Dropzone and Quill -->
+    <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <script>
+        const contentModal = document.getElementById("coursecontentmodal");
+        const contentModuleTitle = document.getElementById("module-title");
+        const contentModuleDesc = document.getElementById("module-description");
+        const addAssignmentToggle = document.getElementById("add-assignment-input");
+        const assignmentDueDate = document.getElementById("assn-due-date");
+        const assignmentPoints = document.getElementById("assn-points");
+        const assignmentDueDateInput = document.getElementById("assn-due-date-input");
+        const assignmentPointsInput = document.getElementById("assn-points-input");
+        const contentActionButton = document.getElementById("course-content-btn");
+        const quill = new Quill('#module-description', {
+            theme: 'snow'
+        });
+
+        let globalAction;
+        let hasAssignment = false;
+        let focusedCourseModuleId;
+
+        //Toggle switch for attaching assignment to course module
+        addAssignmentToggle.addEventListener("change", (event) => {
+            if (event.target.checked) {
+                assignmentDueDate.classList.remove("hidden");
+                assignmentPoints.classList.remove("hidden");
+                hasAssignment = true;
+            } else {
+                assignmentDueDate.classList.add("hidden");
+                assignmentPoints.classList.add("hidden");
+                hasAssignment = false;
+            }
+        });
+
+        function openCourseContentModal({ courseId, courseModuleId = '', moduleData = {}, fileIds, action = 'add' }) {
+            try {
+                globalAction = action;
+                focusedCourseModuleId = courseModuleId
+
+                const modalTitle = contentModal.querySelector(".modal-box h3");
+                modalTitle.textContent = action === 'add' ? 'Add Course Content' : 'Update Course Content';
+
+                //Modal button to submit form data
+                contentActionButton.textContent = action === 'add' ? 'Create' : 'Update';
+
+                // Reset fields
+                contentModuleTitle.value = '';
+                quill.root.innerHTML = '';
+                addAssignmentToggle.checked = false;
+                assignmentDueDateInput.value = '';
+                assignmentPointsInput.value = '';
+                assignmentDueDate.classList.add("hidden");
+                assignmentPoints.classList.add("hidden");
+
+                if (action === 'update' && moduleData) {
+                    // Populate the fields with data for updating
+                    contentModuleTitle.value = moduleData.title;
+                    quill.root.innerHTML = moduleData.description;
+                    addAssignmentToggle.checked = moduleData.assignment !== undefined;
+                    assignmentDueDateInput.value = moduleData.assignment ? new Date(moduleData.assignment.due_date).toISOString().split('T')[0] : "";
+                    assignmentPointsInput.value = moduleData.assignment ? moduleData.assignment.total_points : "";
+
+                    if (moduleData.assignment) {
+                        assignmentDueDate.classList.remove("hidden");
+                        assignmentPoints.classList.remove("hidden");
+                    }
+                }
+
+                contentModal.showModal();
+            } catch (error) {
+                showErrorModal("Could not create course content module due to error: " + error.message);
+            }
+        }
+
+        async function createCourseModule(action, fileIds, courseModuleId=undefined) {
+            try {
+                const courseId = "<%= courseId %>";
+                const endpoint = action === 'add' ? '/create/coursemodule' : '/update/coursemodule';
+
+                let payload = {}
+                if (action === "add") {
+                    payload = JSON.stringify({
+                        title: contentModuleTitle.value,
+                        description: quill.root.innerHTML,
+                        hasAssignment: addAssignmentToggle.checked,
+                        dueDate: assignmentDueDateInput.value,
+                        points: assignmentPointsInput.value,
+                        attachedFileIds: fileIds,
+                        courseTabId: "<%= courseTabId %>"
+                    });
+                } else {
+                    payload = JSON.stringify({
+                        title: contentModuleTitle.value,
+                        description: quill.root.innerHTML,
+                        hasAssignment: addAssignmentToggle.checked,
+                        dueDate: assignmentDueDateInput.value,
+                        points: assignmentPointsInput.value,
+                        attachedFileIds: fileIds,
+                        courseTabId: "<%= courseTabId %>",
+                        courseModuleId: courseModuleId
+                    });
+                }
+
+                const res = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: payload
+                });
+
+                if (!res.ok) {
+                    
+                    throw new Error("Failed to " + action + "course module!");
+                }
+            } catch (error) {
+                showErrorModal(`Failed to create course module: ${error}`);
+            }
+        }
+
+        try {
+            // Dropzone.js Configuration
+            Dropzone.options.myDropzone = {
+                paramName: "file",
+                maxFilesize: 20,
+                addRemoveLinks: true,
+                uploadMultiple: true,
+                parallelUploads: 100,
+                maxFiles: 100,
+                autoProcessQueue: false,
+                init: function() {
+                    let fileIds = {};
+
+                    //Modal submission button for course module data
+                    contentActionButton.addEventListener("click", async () => {
+                        fileIds = {};
+
+                        if (this.getQueuedFiles().length > 0) {
+                            // If there are files in the queue, process them
+                            this.processQueue();
+                        } else {
+                            // If no files, directly create course module
+                            if (globalAction === "update"){
+                                await createCourseModule(globalAction, {}, focusedCourseModuleId);
+                            } else {
+                                await createCourseModule(globalAction, {});
+                            }
+
+                            window.location.reload();
+                        }
+                    });
+
+                    this.on("success", function(file, response) {
+                        // Store response for file IDs
+                        fileIds = response;
+                    });
+
+                    this.on("queuecomplete", async function() {
+                        this.removeAllFiles();
+
+                        console.log(globalAction);
+                        console.log(fileIds);
+
+                        //Create the course module/assignment
+                        if (globalAction === "update"){
+                            await createCourseModule(globalAction, fileIds, focusedCourseModuleId);
+                        } else {
+                            await createCourseModule(globalAction, fileIds);
+                        }
+
+                        window.location.reload();
+                    });
+                }
+            };
+        } catch (error) {
+            showErrorModal(`Failed to create course module: ${error}`);
+        }
+
+    </script>
+</body>
+</html>
