@@ -11,10 +11,17 @@
         <ul class="list-inside list-none">
             <% courseModule.files.forEach(function(file) { %>
             <li>
-                <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModule.id %>/<%= file.id %>" download class="text-blue-600 hover:text-blue-800" onclick="event.stopPropagation()">
-                    <ion-icon name="document-outline"></ion-icon>
-                    <%= file.file_name %> (<%= file.file_size %> bytes)
-                </a>
+                <span class="flex flex-col justify-between">
+                    <a id="<%= file.id %>" href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModule.id %>/<%= file.id %>" download class="pr-4 text-blue-600 hover:text-blue-800" onclick="event.stopPropagation()">
+                        <ion-icon name="document-outline"></ion-icon>
+                        <%= file.file_name %> (<%= file.file_size %> bytes)
+                    </a>
+                    <% if (role === "teacher" ) { %>
+                        <button class="file-delete-btn hover:bg-indigo-800 rounded p-2 w-24 px-4 py-2">
+                            <ion-icon name="trash-outline"></ion-icon>
+                        </button>
+                    <% } %>
+                </span>
             </li>
             <% }); %>
         </ul>
@@ -36,3 +43,41 @@
         </div>
     <% } %>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const deleteFileButtons = document.querySelectorAll(".file-delete-btn");
+        deleteFileButtons.forEach(button => {
+            button.addEventListener("click", async function(event) {
+                event.stopPropagation();
+                try {
+                    const parentElement = this.closest('span');
+                    const fileLink = parentElement.querySelector('a');
+
+                    if (fileLink) {
+                        const fileId = fileLink.id;
+                        const payload = await fetch("/delete/file", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                fileId: fileId
+                            })
+                        });
+
+                        if (!payload.ok) {
+                            throw new Error("Failed to delete course tab!");
+                        }
+
+                        window.location.reload();
+                    }
+                } catch(error) {
+                    console.log("Error caught:", error);
+                    showErrorModal("Could not delete file to error: " + error.message);
+                }
+            });
+        });
+    });
+
+</script>
