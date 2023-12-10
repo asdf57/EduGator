@@ -5,23 +5,23 @@
     <div class="course-module-description">
         <%- courseModule.description %>
     </div>
-    <% if(Object.keys(courseModule.files).length> 0) { %>
+    <% if(Object.keys(courseModule.files).length > 0) { %>
         <div class="pt-2">
         Attached files:
         <ul class="list-inside list-none">
             <% courseModule.files.forEach(function(file) { %>
-            <li>
-                <span class="flex flex-col justify-between">
-                    <a id="<%= file.id %>" href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModule.id %>/<%= file.id %>" download class="pr-4 text-blue-600 hover:text-blue-800" onclick="event.stopPropagation()">
+            <li class="flex justify-start items-center mb-2">
+                <div class="flex justify-between items-center w-full max-w-lg">
+                    <a id="<%= file.id %>" href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModule.id %>/<%= file.id %>" download class="text-blue-600 hover:text-blue-800 truncate">
                         <ion-icon name="document-outline"></ion-icon>
                         <%= file.file_name %> (<%= file.file_size %> bytes)
                     </a>
                     <% if (role === "teacher" ) { %>
-                        <button class="file-delete-btn hover:bg-indigo-800 rounded p-2 w-24 px-4 py-2">
+                        <button class="file-delete-btn hover:bg-indigo-800 rounded p-2">
                             <ion-icon name="trash-outline"></ion-icon>
                         </button>
                     <% } %>
-                </span>
+                </div>
             </li>
             <% }); %>
         </ul>
@@ -44,40 +44,40 @@
     <% } %>
 </div>
 
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const deleteFileButtons = document.querySelectorAll(".file-delete-btn");
+
         deleteFileButtons.forEach(button => {
             button.addEventListener("click", async function(event) {
                 event.stopPropagation();
                 try {
-                    const parentElement = this.closest('span');
+                    const parentElement = this.closest('div');
                     const fileLink = parentElement.querySelector('a');
 
                     if (fileLink) {
                         const fileId = fileLink.id;
-                        const payload = await fetch("/delete/file", {
+                        const response = await fetch("/delete/file", {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json"
                             },
-                            body: JSON.stringify({
-                                fileId: fileId
-                            })
+                            body: JSON.stringify({ fileId: fileId })
                         });
 
-                        if (!payload.ok) {
-                            throw new Error("Failed to delete course tab!");
+                        if (!response.ok) {
+                            throw new Error("Failed to delete file!");
                         }
 
                         window.location.reload();
                     }
-                } catch(error) {
-                    console.log("Error caught:", error);
-                    showErrorModal("Could not delete file to error: " + error.message);
+                } catch (error) {
+                    console.error("Error caught:", error);
+                    showErrorModal("Could not delete file due to error: " + error.message);
                 }
             });
         });
     });
-
 </script>
+
