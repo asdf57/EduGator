@@ -11,17 +11,18 @@
             Attached files:
             <ul class="list-inside list-none">
                 <% courseModule.files.forEach(function(file) { %>
-                    <li>
-                        <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
-                            <ion-icon name="document-outline"></ion-icon>
-                            <%= file.file_name %> (<%= file.file_size %> bytes)
-                        </a>
-                    </li>
+                <li>
+                    <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
+                        <ion-icon name="document-outline"></ion-icon>
+                        <%= file.file_name %> (<%= file.file_size %> bytes)
+                    </a>
+                </li>
                 <% }); %>
             </ul>
         </div>
     <% } %>
-    
+</div>
+
 <!-- File selection input -->
 <% if (role === "student") { %>
     <label class="label">
