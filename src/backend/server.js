@@ -491,7 +491,6 @@ app.post("/delete/:type", async (req, res) => {
     }
 
     return res.end();
-
   } catch (error) {
     console.log(`Error while deleting: ${error}`);
     return res.status(500).json({error: error});
