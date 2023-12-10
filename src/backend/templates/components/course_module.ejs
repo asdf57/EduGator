@@ -10,7 +10,7 @@
         Attached files:
         <ul class="list-inside list-none">
             <% courseModule.files.forEach(function(file) { %>
-            <li class="flex justify-start items-center mb-2">
+            <li class="flex justify-start items-center">
                 <div class="flex justify-between items-center w-full max-w-lg">
                     <a id="<%= file.id %>" href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModule.id %>/<%= file.id %>" download class="text-blue-600 hover:text-blue-800 truncate">
                         <ion-icon name="document-outline"></ion-icon>
@@ -70,7 +70,9 @@
                             throw new Error("Failed to delete file!");
                         }
 
-                        window.location.reload();
+                        response.text().then(() => {
+                            window.location.reload();
+                        });
                     }
                 } catch (error) {
                     console.error("Error caught:", error);
