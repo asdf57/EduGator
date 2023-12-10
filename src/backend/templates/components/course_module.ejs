@@ -46,39 +46,38 @@
 
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const deleteFileButtons = document.querySelectorAll(".file-delete-btn");
+    const deleteFileButtons = document.querySelectorAll(".file-delete-btn");
 
-        deleteFileButtons.forEach(button => {
-            button.addEventListener("click", async function(event) {
-                event.stopPropagation();
-                try {
-                    const parentElement = this.closest('div');
-                    const fileLink = parentElement.querySelector('a');
+    deleteFileButtons.forEach(button => {
+        console.log("Adding event listener for button: " + button);
+        button.addEventListener("click", async function(event) {
+            event.stopPropagation();
+            try {
+                const parentElement = this.closest('div');
+                const fileLink = parentElement.querySelector('a');
 
-                    if (fileLink) {
-                        const fileId = fileLink.id;
-                        const response = await fetch("/delete/file", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({ fileId: fileId })
-                        });
+                if (fileLink) {
+                    const fileId = fileLink.id;
+                    const response = await fetch("/delete/file", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ fileId: fileId })
+                    });
 
-                        if (!response.ok) {
-                            throw new Error("Failed to delete file!");
-                        }
-
-                        response.text().then(() => {
-                            window.location.reload();
-                        });
+                    if (!response.ok) {
+                        throw new Error("Failed to delete file!");
                     }
-                } catch (error) {
-                    console.error("Error caught:", error);
-                    showErrorModal("Could not delete file due to error: " + error.message);
+
+                    response.text().then(() => {
+                        window.location.reload();
+                    });
                 }
-            });
+            } catch (error) {
+                console.error("Error caught:", error);
+                showErrorModal("Could not delete file due to error: " + error.message);
+            }
         });
     });
 </script>
