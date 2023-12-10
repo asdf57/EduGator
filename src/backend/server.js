@@ -7,7 +7,6 @@ const multer = require('multer');
 const fs = require('fs');
 
 const db = require("./scripts/database");
-const utils = require("./scripts/utils");
 const course = require("./scripts/course");
 const { LoginType, getUserType } = require('./scripts/roles');
 
