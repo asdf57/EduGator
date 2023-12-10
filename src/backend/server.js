@@ -441,7 +441,7 @@ app.post("/delete/:type", async (req, res) => {
     const type = req.params.type;
 
     if (type === "file") {
-      const fileId = req.body.fileid;
+      const fileId = req.body.fileId;
 
       if (!fileId) {
         return res.status(500).json({error: "File name of file to delete is invalid!"});
