@@ -24,13 +24,7 @@ const upload = multer({ storage: storage });
 app.set("view engine", "ejs");
 app.set('views', path.join(__dirname, 'templates'));
 
-const pool = new pg.Pool({
-  user: process.env.POSTGRES_USER,
-  host: process.env.POSTGRES_HOST,
-  database: process.env.POSTGRES_DB,
-  password: process.env.POSTGRES_PASSWORD,
-  port: process.env.POSTGRES_PORT
-});
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 pool.connect().then(function () {
   console.log(`Connected to database!`);
