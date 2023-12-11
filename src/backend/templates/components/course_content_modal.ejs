@@ -1,48 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <style>
+        .dark .input-bordered,
+        .dark .textarea-bordered,
+        .dark .toggle {
+          border-color: white; /* Or use #FFFFFF for white */
+          outline: 1px solid white; /* Adjust thickness as needed */
+        }
+    </style>      
+</head>
 <body>
     <button id="create-content" class="btn btn-primary" onclick="openCourseContentModal({ action: 'add' })">Add</button>
     <dialog id="coursecontentmodal" class="modal">
-        <div class="modal-box text-center">
+        <div class="modal-box text-center bg-gray-200 text-black dark:text-white dark:bg-gray-700">
             <h3 class="font-bold text-lg">Add Course Content</h3>
 
             <!-- Module title input -->
             <label class="label">
-                <span class="label-text">Module Title</span>
+                <span class="label-text text-black dark:text-white">Module Title</span>
             </label>
-            <input id="module-title" type="text" class="input input-bordered w-full" name="<%= courseId %>" required>
+            <input id="module-title" type="text" class="input input-bordered w-full bg-gray-200 text-black dark:text-white dark:bg-gray-700" name="<%= courseId %>" required>
 
             <!-- Module description input -->
             <label class="label">
-                <span class="label-text">Module Description</span>
+                <span class="label-text text-black dark:text-white">Module Description</span>
             </label>
-            <div id="module-description" class="textarea textarea-bordered w-full"></div>
+            <div id="module-description" class="textarea textarea-bordered w-full bg-gray-200 text-black dark:text-white dark:bg-gray-700"></div>
 
             <!-- Add assignment -->
             <label class="label">
-                <span class="label-text">Add Assignment</span>
+                <span class="label-text text-black dark:text-white">Add Assignment</span>
             </label>
-            <input id="add-assignment-input" type="checkbox" class="toggle" />
+            <input id="add-assignment-input" type="checkbox" class="toggle bg-gray-200 text-black dark:text-white dark:bg-gray-700" />
 
             <!-- Set assignment due date -->
             <div id="assn-due-date" class="form-control mb-4 hidden">
                 <label class="label">
-                    <span class="label-text">Due Date</span>
+                    <span class="label-text text-black dark:text-white">Due Date</span>
                 </label>
-                <input id="assn-due-date-input" type="date" class="input input-bordered w-full">
+                <input id="assn-due-date-input" type="date" class="input input-bordered w-full bg-gray-200 text-black dark:text-white dark:bg-gray-700">
             </div>
 
             <!-- Set assignment points -->
             <div id="assn-points" class="form-control mb-4 hidden">
                 <label class="label">
-                    <span class="label-text">Total Points</span>
+                    <span class="label-text text-black dark:text-white">Total Points</span>
                 </label>
-                <input id="assn-points-input" type="number" min="0" class="input input-bordered w-full" required>
+                <input id="assn-points-input" type="number" min="0" class="input input-bordered w-full bg-gray-200 text-black dark:text-white dark:bg-gray-700" required>
             </div>
 
             <!-- File selection input -->
             <label class="label">
-                <span class="label-text">Add Attachments</span>
+                <span class="label-text text-black dark:text-white">Add Attachments</span>
             </label>
             <div class="container mx-auto my-10">
                 <form action="/upload/content" class="dropzone" id="myDropzone">
@@ -50,14 +60,14 @@
                         <input name="file" type="file" multiple />
                         <button>Detach</button>
                     </div>
-                    <div class="dz-message">
+                    <div class="dz-message text-black">
                         Drop files here or click to upload.
                     </div>
                 </form>
             </div>
 
             <!-- Submit button -->
-            <button id="course-content-btn" class="btn">Create</button>
+            <button id="course-content-btn" class="btn btn-primary text-black dark:text-white">Create</button>
         </div>
 
         <form method="dialog" class="modal-backdrop">
