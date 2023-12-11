@@ -1,4 +1,4 @@
-<aside class="drawer w-64 z-10">
+<aside class="drawer w-64 z-10 bg-gray-200 dark:bg-gray-700">
     <input id="my-drawer" type="checkbox" class="drawer-toggle" />
     <div class="drawer-content absolute left-[50%] top-[50%]">
     </div>
@@ -24,3 +24,16 @@
         </ul>
     </div>
 </aside>
+
+<style>
+    .drawer {
+        position: fixed; /* or 'absolute' depending on your layout */
+        left: -100%; /* Start off-screen */
+        transition: left 0.3s ease;
+        z-index: 10; /* Adjust as needed */
+    }
+
+    #my-drawer:checked ~ .drawer {
+        left: 0; /* Move into view */
+    }
+</style>
