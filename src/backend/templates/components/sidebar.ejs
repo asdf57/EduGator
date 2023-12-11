@@ -4,9 +4,9 @@
     </div>
     <div class="drawer-side">
         <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-        <ul class="menu p-4 w-80 min-h-full bg-base-100 text-base-content text-2xl font-semibold">
+        <ul class="menu p-4 w-80 min-h-full text-2xl font-semibold bg-gray-200 text-black dark:bg-gray-700 dark:text-white">
             <li class="mb-2 font-semibold text-xl flex flex-col items-center justify-center h-full">
-                <ion-icon style="font-size: 64px" name="person-circle-outline"></ion-icon>
+                <ion-icon class="text-black dark:text-white" style="font-size: 64px" name="person-circle-outline"></ion-icon>
                 <%= username %>
             </li>
         <% if (role === "admin") { %>
@@ -27,13 +27,13 @@
 
 <style>
     .drawer {
-        position: fixed; /* or 'absolute' depending on your layout */
-        left: -100%; /* Start off-screen */
+        position: fixed;
+        left: -100%;
         transition: left 0.3s ease;
-        z-index: 10; /* Adjust as needed */
+        z-index: 10;
     }
 
     #my-drawer:checked ~ .drawer {
-        left: 0; /* Move into view */
+        left: 0;
     }
 </style>
