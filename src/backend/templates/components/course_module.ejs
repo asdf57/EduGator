@@ -1,4 +1,4 @@
-<div class="p-4">
+<div class="p-4 text-black dark:text-white">
     <h3 class="text-xl font-semibold pb-5">
         <%= courseModule.title %>
     </h3>
@@ -44,41 +44,40 @@
     <% } %>
 </div>
 
-
 <script>
-    const deleteFileButtons = document.querySelectorAll(".file-delete-btn");
+    //Since this is imported for each course module, we need to scope this logic to avoid redeclaration errors
+    {
+        const deleteFileButtons = document.querySelectorAll(".file-delete-btn");
+        deleteFileButtons.forEach(button => {
+            button.addEventListener("click", async function(event) {
+                event.stopPropagation();
+                try {
+                    const parentElement = this.closest('div');
+                    const fileLink = parentElement.querySelector('a');
 
-    deleteFileButtons.forEach(button => {
-        console.log("Adding event listener for button: " + button);
-        button.addEventListener("click", async function(event) {
-            event.stopPropagation();
-            try {
-                const parentElement = this.closest('div');
-                const fileLink = parentElement.querySelector('a');
+                    if (fileLink) {
+                        const fileId = fileLink.id;
+                        const response = await fetch("/delete/file", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ fileId: fileId })
+                        });
 
-                if (fileLink) {
-                    const fileId = fileLink.id;
-                    const response = await fetch("/delete/file", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ fileId: fileId })
-                    });
+                        if (!response.ok) {
+                            throw new Error("Failed to delete file!");
+                        }
 
-                    if (!response.ok) {
-                        throw new Error("Failed to delete file!");
+                        response.text().then(() => {
+                            window.location.reload();
+                        });
                     }
-
-                    response.text().then(() => {
-                        window.location.reload();
-                    });
+                } catch (error) {
+                    console.error("Error caught:", error);
+                    showErrorModal("Could not delete file due to error: " + error.message);
                 }
-            } catch (error) {
-                console.error("Error caught:", error);
-                showErrorModal("Could not delete file due to error: " + error.message);
-            }
+            });
         });
-    });
+    }
 </script>
-
