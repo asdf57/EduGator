@@ -24,7 +24,7 @@
               <ul id="content-items" class="divide-y divide-gray-200">
                 <% for (let i=0; i < courseModules.length; i++) { %>
                   <li coursemoduleid="<%= courseModules[i].id %>"
-                      class="module-item hover:bg-gray-50 mb-2 draggable-item p-2 cursor-pointer">
+                      class="module-item hover:bg-gray-50 dark:hover:bg-gray-600 mb-2 draggable-item p-2 cursor-pointer">
                     <div class="flex items-center justify-between hover:bg-gray-50">
                       <div onclick="navigateToCourseModulePage('<%= courseModules[i].id %>')" class="flex-grow">
                         <%- include('../components/course_module', {courseModule: courseModules[i]}) %>
