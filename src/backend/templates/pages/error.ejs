@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <%- include( '../components/styling' ) %>
+</head>
+<body>
+    <main class="bg-gray-100 dark:bg-gray-800">
+        <%- include( '../components/header' ) %>
+        <%- include( '../components/sidebar' ) %>
+        <h1>An error has occurred!</h1>
+        <p><%= error %></p>
+    </main>
+</body>
+</html>
