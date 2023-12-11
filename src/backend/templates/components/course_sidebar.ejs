@@ -2,7 +2,7 @@
 
 <%- include( '../components/error_modal' ) %>
 
-<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64 flex flex-col justify-between">
+<aside class="sidebar h-screen menu p-4 shadow-lg w-64 flex flex-col justify-between bg-gray-200 text-black dark:bg-gray-700 dark:text-white">
     <!-- Scrollable list for course tabs -->
     <ul courseid="<%= courseId %>" id="course-tabs" class="overflow-y-auto flex-1">
         <% for (let i = 0; i < courseTabs.length; i++) { %>
