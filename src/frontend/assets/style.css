@@ -2,6 +2,25 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* Custom Dark Mode Styles */
+:root.dark {
+  --tw-bg-opacity: 1; /* Ensure full opacity */
+  --tw-text-opacity: 1; /* Ensure full opacity */
+
+  /* Override background colors */
+  --tw-bg-color: #1a202c; /* Dark mode background color */
+  --tw-text-color: #f7fafc; /* Dark mode text color */
+}
+
+/* Apply the custom properties */
+.dark .bg-gray-200 {
+  background-color: var(--tw-bg-color) !important; /* Override background */
+}
+
+.dark .text-gray-800 {
+  color: var(--tw-text-color) !important; /* Override text color */
+}
+
 @layer base {
     h1 {
       @apply text-2xl;
