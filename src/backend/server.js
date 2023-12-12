@@ -1,3 +1,4 @@
+//Imports
 const express = require("express");
 const pg = require("pg");
 const path = require("path");
@@ -5,12 +6,11 @@ const session = require("express-session");
 const bcrypt = require("bcrypt");
 const multer = require('multer');
 const fs = require('fs');
-
 const db = require("./scripts/database");
-const utils = require("./scripts/utils");
 const course = require("./scripts/course");
 const { LoginType, getUserType } = require('./scripts/roles');
 
+//Global constants
 const app = express();
 const SALT_ROUNDS = 10;
 const SESSION_DURATION = 1200000;
@@ -25,13 +25,8 @@ const upload = multer({ storage: storage });
 app.set("view engine", "ejs");
 app.set('views', path.join(__dirname, 'templates'));
 
-const pool = new pg.Pool({
-  user: process.env.POSTGRES_USER,
-  host: process.env.POSTGRES_HOST,
-  database: process.env.POSTGRES_DB,
-  password: process.env.POSTGRES_PASSWORD,
-  port: process.env.POSTGRES_PORT
-});
+//Global Postgres database object
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 pool.connect().then(function () {
   console.log(`Connected to database!`);
@@ -63,33 +58,6 @@ app.use((err, req, res, next) => {
 
 app.use(express.urlencoded({ extended: true }));
 
-function getHtmlPath(filename) {
-  return path.join(__dirname, "..", "frontend", "public", filename);
-}
-
-//Hardcode admin user for time being
-function generateTestUsers() {
-  try {
-    const adminUsername = "root";
-
-    bcrypt.hash("hunter2", SALT_ROUNDS, async function(err, hashedPassword) {
-      const userQuery = await pool.query(`SELECT password_hash FROM admin WHERE username = $1`, [adminUsername]);
-      if (userQuery.rows.length >= 1)
-        return;
-
-      if (err) {
-        console.error('Hashing failed', err);
-      } else {
-        await pool.query('INSERT INTO admin (username, actualname, password_hash) VALUES ($1, $2, $3)', [adminUsername, "Hunter2", hashedPassword]);
-      }
-    });
-  } catch(error) {
-    console.log(`Failed to create test users: ${error}`)
-  }
-}
-
-generateTestUsers();
-
 app.get("/home", async (req, res) => {
   try {
       let courses = [];
@@ -113,7 +81,7 @@ app.get("/home", async (req, res) => {
                 JOIN courses ON ${req.session.role}_courses.course_id = courses.id
                 WHERE ${req.session.role}_courses.${req.session.role}_id = $1
             `, [id]);
-            
+
             if (classQuery && classQuery.rows && classQuery.rows.length > 0) {
                 courses = classQuery.rows;
             }
@@ -134,17 +102,16 @@ app.get("/login", async (req, res) => {
   if (req.session.isAuthenticated) {
     return res.redirect('/home');
   } else {
-    return res.sendFile(getHtmlPath("login.html"));
+    return res.render("pages/login");
   }
 });
 
 app.get("/logout", async (req, res) => {
     if (req.session.isAuthenticated) {
         req.session.destroy();
-        return res.sendFile(getHtmlPath("login.html"));
-    } else {
-      return res.sendFile(getHtmlPath("login.html"));
     }
+
+    return res.render("pages/login");
   });
 
 app.get("/create", async (req, res) => {
@@ -152,14 +119,14 @@ app.get("/create", async (req, res) => {
     const role = req.session.role;
 
     if (role === LoginType.Admin) {
-      courses = await course.getAllCourses(pool);
+      const courses = await course.getAllCourses(pool);
       res.render("pages/create", {courses: courses, username: req.session.username, role: req.session.role});
     } else {
-      return res.sendFile(getHtmlPath("login.html"));
+      return res.render("pages/login");
     }
   } catch (error) {
     console.log(`Error in create route: ${error}`);
-    return res.status(500).send("Unexpected error occurred. Please try again later!");
+    return res.status(500).send(`Could not perform creation: ${error}`);
   }
 });
 
@@ -167,18 +134,14 @@ app.get("/createCourse", (req, res) => {
   if (req.session.role !== "admin") {
     return res.redirect('/login');
   }
-  res.render("pages/create_course", {
+
+  return res.render("pages/create_course", {
     username: req.session.username,
     role: req.session.role
   });
 });
 
 app.post("/createCourse", async (req, res) => {
-  console.log("received request body:",req.body);
-  console.log("Course Name:", req.body.courseName);
-  console.log("Description:", req.body.description);
-  console.log("Course Start:", req.body.courseStart);
-  console.log("Course End:", req.body.courseEnd);
   try {
       if (req.session.role !== "admin") {
           return res.status(401).send("Unauthorized");
@@ -191,17 +154,17 @@ app.post("/createCourse", async (req, res) => {
       res.redirect('/home');
   } catch (error) {
       console.error(error);
-      res.status(500).send("Server error");
+      return res.status(500).json({error: `Failed to create course due to error: ${error}`});
   }
 });
 
 app.get("/home", async (req, res) => {
   try {
       const courses = await pool.query('SELECT * FROM courses');
-      res.render("pages/home", { courses: courses.rows, username: req.session.username, role: req.session.role });
+      return res.render("pages/home", { courses: courses.rows, username: req.session.username, role: req.session.role });
   } catch (error) {
       console.error(error);
-      res.status(500).send("Error loading courses");
+      return res.status(500).send("Error loading courses");
   }
 });
 
@@ -229,6 +192,7 @@ app.post("/upload/:type", upload.any(), async (req, res) => {
 
     const files = req.files;
 
+    //Teacher course content file uploading logic
     if (type === "content") {
       if (req.session.role !== LoginType.Teacher) {
         return res.status(401).json({error: "Unauthorized"});
@@ -236,16 +200,14 @@ app.post("/upload/:type", upload.any(), async (req, res) => {
 
       const fileIdRes = {}
 
+      //Create files
       for (const file of files) {
-        //Create file
-        const fileQuery = await pool.query(`INSERT INTO files (file_name, file_type, file_size, file_data) VALUES ($1,$2,$3,$4) RETURNING id`, [file.originalname, file.mimetype, file.size, file.buffer]);
-
-        if (!fileQuery || !fileQuery.rows || fileQuery.rows.length == 0) {
+        const fileId = await db.createFile(pool, file);
+        console.log(`Got file id: ${fileId}`);
+        if (!fileId) {
           return res.status(500).json({error: "Failed to insert uploaded file(s)!"});
         }
 
-        const fileId = fileQuery.rows[0].id;
-        console.log(fileId);
         fileIdRes[file.originalname] = fileId;
       }
 
@@ -263,10 +225,12 @@ app.post("/upload/:type", upload.any(), async (req, res) => {
       await pool.query(query, values);
     }
   } catch (error) {
-    return res.status(500).json({error: error});
+    console.log(`Failed to upload file due to error: ${error}`);
+    return res.status(500).json({error: `Failed to upload file due to error: ${error}`});
   }
 });
 
+//Retrieves a file attached to a course module
 app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res) => {
   try {
     const courseId = req.params.courseId;
@@ -292,22 +256,23 @@ app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res)
 
     //Get file
     const fileData = await db.getFileData(pool, fileId);
-    if (Object.keys(fileData).length == 0) {
-      return res.status(404).json({error: "File data not found!"});
+    if (Object.keys(fileData).length === 0) {
+      return res.status(404).json({error: "File not found!"});
     }
 
     res.setHeader('Content-Disposition', 'attachment; filename="' + fileData.file_name + '"');
     res.setHeader('Content-Type', 'application/octet-stream');
     return res.end(fileData.file_data);
   } catch (error) {
-    return res.status(500).json({error: "Error while retrieving file!"});
+    return res.status(500).json({error: `Error while retrieving file: ${error}`});
   }
 });
 
+//Get a json object containing a course module's database information
 app.get("/coursemodule/:courseModuleId", async (req,res) => {
   try {
     const courseModuleId = req.params.courseModuleId;
-    auth = {username: req.session.username, role: req.session.role};
+    const auth = {username: req.session.username, role: req.session.role};
     return res.json(await db.getCourseModule(pool, courseModuleId, auth));
   } catch (error) {
     return res.status(500).json({error: error});
@@ -321,14 +286,20 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     const courseModuleId = req.params.courseModuleId;
     const auth = {username: req.session.username, role: req.session.role};
 
+    console.log(courseTabId);
+
     if (req.session.role === LoginType.Admin) {
       return res.status(401).json({error: "Admin role cannot access courses!"});
     }
 
     //Get the course information
     const courseIdQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [courseId]);
-    if (!courseIdQuery) {
-      return res.status(500).json({"error": "Error checking if course is valid!"});
+    if (!courseIdQuery || !courseIdQuery.rows || courseIdQuery.rows.length === 0) {
+      return res.status(500).render("pages/error", {
+        error: "Could not find a course page for the specified course!",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     if (courseIdQuery.length <= 0) {
@@ -338,7 +309,11 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     const isCourseTabValid = await db.isCourseTabInValidCourse(pool, courseTabId, courseId);
 
     if (courseTabId && !isCourseTabValid) {
-      return res.status(500).json({"error": "Course tab does not exist in course!"});
+      return res.status(500).render("pages/error", {
+        error: "Course tab does not exist in course!",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     const isCourseModuleValid = await db.isCourseModuleInTab(pool, courseTabId, courseModuleId);
@@ -398,23 +373,11 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
       });
     }
 
-    res.render("pages/course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
+    return res.render("pages/course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
   } catch (error) {
       console.error(error);
-      res.status(500).send("Error loading course page");
+      return res.status(500).send("Error loading course page");
   }
-});
-
-app.get("/course-content/:courseId/:contentType", async (req, res) => {
-  const courseId = req.params.courseId;
-  const contentType = req.params.contentType;
-  let contentHtml = '<p>No content available.</p>';
-  if (contentType === 'info') {
-      contentHtml = '<p>Course information will be displayed here.</p>';
-  } else if (contentType === 'announcements') {
-      contentHtml = '<p>Announcements will be displayed here.</p>';
-  }
-  res.send(contentHtml);
 });
 
 app.get("/delete", async (req, res) => {
@@ -427,74 +390,82 @@ app.get("/delete", async (req, res) => {
             const teachers = await db.getAllEntriesFromRole(pool, LoginType.Teacher);
 
             res.render("pages/delete", {admins: admins, students: students, teachers: teachers, username: req.session.username, role: req.session.role});
-        } else {
-            return res.sendFile(getHtmlPath("login.html"));
         }
+
+        return res.render("pages/login");
     } catch (error) {
         console.log(`Error in create route: ${error}`);
         return res.status(500).send("Unexpected error occurred. Please try again later!");
     }
 });
 
-app.post("/delete/:type", async (req, res) => {
+app.post("/delete/file", async (req, res) => {
   try {
-    const type = req.params.type;
+    const fileId = req.body.fileId;
 
-    if (type === "file") {
-      const fileId = req.body.fileid;
+    if (!fileId) {
+      return res.status(500).json({error: "File name of file to delete is invalid!"});
+    }
 
-      if (!fileId) {
-        return res.status(500).json({error: "File name of file to delete is invalid!"});
-      }
+    //Add check to ensure file is associated with course, user is a teacher, user is enrolled in course
 
-      if (!await db.isFileInDatabase(pool, fileId)) {
-        return res.status(500).json({error: "File doesn't exist in database!"});
-      }
+    if (!await db.isFileInDatabase(pool, fileId)) {
+      return res.status(500).json({error: "File doesn't exist in database!"});
+    }
 
       await pool.query(`DELETE FROM files WHERE id = $1`, [fileId]);
+
+      return res.end();
+  } catch(error){
+    return res.status(500).json({error: `Failed to delete file due to error: ${error}`})
+  }
+});
+
+app.post("/delete/coursemodule", async (req, res) => {
+  try {
+    if (req.session.role != LoginType.Teacher) {
+      return res.status(400).json({error: "Role cannot delete course modules!"});
     }
 
-    if (type === "coursemodule") {
-      if (req.session.role != LoginType.Teacher) {
-        return res.status(400).json({error: "Role cannot delete course modules!"});
-      }
-
-      const courseModuleId = req.body.courseModuleId;
-      if (!courseModuleId) {
-        return res.status(500).json({error: "Course module id is invalid!"});
-      }
-
-      await pool.query(`DELETE FROM course_modules WHERE id = $1`, [courseModuleId]);
+    const courseModuleId = req.body.courseModuleId;
+    if (!courseModuleId) {
+      return res.status(500).json({error: "Course module id is invalid!"});
     }
 
-    if (type === "coursetab") {
-      if (req.session.role != LoginType.Teacher) {
-        return res.status(400).json({error: "Role cannot delete course tabs!"});
-      }
-
-      const courseTabId = req.body.courseTabId;
-      if (!courseTabId) {
-        return res.status(500).json({error: "Course tab id is invalid!"});
-      }
-
-      const courseId = await db.getCourseIdFromCourseTab(pool, courseTabId)
-      if (!courseId) {
-        return res.status(500).json({error: "Could not find course id from course tab!"});
-      }
-
-      //Check if teacher is in this course
-      if (! await db.isEntityInCourse(pool, req.session.username, req.session.role, courseId)) {
-        return res.status(400).json({error: "Teacher is not enrolled in the required course!"});
-      }
-
-      await db.deleteCourseTab(pool, courseTabId);
-    }
+    await pool.query(`DELETE FROM course_modules WHERE id = $1`, [courseModuleId]);
 
     return res.end();
+  } catch(error){
+    return res.status(500).json({error: `Failed to delete course module due to error: ${error}`})
+  }
+});
 
-  } catch (error) {
-    console.log(`Error while deleting: ${error}`);
-    return res.status(500).json({error: error});
+app.post("/delete/coursetab", async (req, res) => {
+  try {
+    if (req.session.role != LoginType.Teacher) {
+      return res.status(400).json({error: "Role cannot delete course tabs!"});
+    }
+
+    const courseTabId = req.body.courseTabId;
+    if (!courseTabId) {
+      return res.status(500).json({error: "Course tab id is invalid!"});
+    }
+
+    const courseId = await db.getCourseIdFromCourseTab(pool, courseTabId)
+    if (!courseId) {
+      return res.status(500).json({error: "Could not find course id from course tab!"});
+    }
+
+    //Check if teacher is in this course
+    if (! await db.isEntityInCourse(pool, req.session.username, req.session.role, courseId)) {
+      return res.status(400).json({error: "Teacher is not enrolled in the required course!"});
+    }
+
+    await db.deleteCourseTab(pool, courseTabId);
+
+    return res.end();
+  } catch(error){
+    return res.status(500).json({error: `Failed to delete course tab due to error: ${error}`})
   }
 });
 
@@ -722,121 +693,115 @@ app.post("/update/:entity/:type", async (req, res) => {
   }
 });
 
-app.post("/create/:type", async (req, res) => {
+app.post("/create/coursetab", async (req, res) => {
+  return await createCourseTab(req, res);
+});
+
+app.post("/create/coursemodule", async (req, res) => {
+  return await createCourseModule(req, res);
+});
+
+app.post("/create/entity", async (req, res) => {
   try {
-    const createType = req.params.type;
+    const username = req.body.username;
+    const password = req.body.password;
+    const actualName = req.body.actualName;
+    const academicYear = req.body.academicYear;
+    const graduationDate = req.body.graduationDate;
+    const userRole = req.body.role;
+    const selectedCourses = req.body.courses;
+    const sessionRole = req.session.role;
 
-    if (createType === "coursetab") {
-        return await createCourseTab(req, res);
+    if (sessionRole !== LoginType.Admin)
+      return res.status(401).json({error: "Insufficient permissions to create users!"});
+
+    if (!username || !password || !userRole)
+      return res.sendStatus(401);
+
+    if (!ROLES.includes(userRole))
+      return res.status(400).json({"error": "Invalid role was provided!"});
+
+    if (!typeof username == "string" || !typeof password == "string")
+      return res.status(400).json({"error": "Username or password is not a string!"});
+
+    if (username.length < 1 || username.length > 25)
+      return res.status(400).json({"error": `Username has invalid length ${username.length}: Must be between 1 and 25 characters`});
+
+    if (password.length < 5 || password.length > 36)
+      return res.status(400).json({"error": `Password has invalid length ${password.length}: Must be between 5 and 36 characters`});
+
+    const userQuery = await pool.query(`SELECT password_hash FROM ${userRole} WHERE username = $1`, [username]);
+    if (userQuery.rows.length >= 1)
+      return res.status(500).json({error: "An error occurred"});
+
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    if (!hashedPassword)
+      return res.status(500).json({error: "An error occurred"});
+
+    if (getUserType(userRole) === LoginType.Admin && selectedCourses.length > 0){
+      return res.status(500).json({error: "Admins cannot specify courses!"});
     }
 
-    if (createType === "coursemodule") {
-      return await createCourseModule(req, res);
+    for (let i = 0; i < selectedCourses.length; i++) {
+      const courseQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [selectedCourses[i]]);
+      if (courseQuery.rows.length < 1)
+        return res.status(500).json({error: "Could not find course in the database!"});
     }
 
-    if (createType === "entity"){
-      const username = req.body.username;
-      const password = req.body.password;
-      const actualName = req.body.actualName;
-      const academicYear = req.body.academicYear;
-      const graduationDate = req.body.graduationDate;
-      const userRole = req.body.role;
-      const selectedCourses = req.body.courses;
-      const sessionRole = req.session.role;
+    let insertQuery;
+    if (getUserType(userRole) === LoginType.Student) {
+      insertQuery = await pool.query(
+          `INSERT INTO student (username, actualname, academic_year, expected_graduation, password_hash) VALUES ($1,$2,$3,$4,$5)`,
+          [username, actualName, academicYear, graduationDate, hashedPassword]
+      );
 
-      if (sessionRole !== LoginType.Admin)
-        return res.status(401).json({error: "Insufficient permissions to create users!"});
-
-      if (!username || !password || !userRole)
-        return res.sendStatus(401);
-
-      if (!ROLES.includes(userRole))
-        return res.status(400).json({"error": "Invalid role was provided!"});
-
-      if (!typeof username == "string" || !typeof password == "string")
-        return res.status(400).json({"error": "Username or password is not a string!"});
-
-      if (username.length < 1 || username.length > 25)
-        return res.status(400).json({"error": `Username has invalid length ${username.length}: Must be between 1 and 25 characters`});
-
-      if (password.length < 5 || password.length > 36)
-        return res.status(400).json({"error": `Password has invalid length ${password.length}: Must be between 5 and 36 characters`});
-
-      const userQuery = await pool.query(`SELECT password_hash FROM ${userRole} WHERE username = $1`, [username]);
-      if (userQuery.rows.length >= 1)
-        return res.status(500).json({error: "An error occurred"});
-
-      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-      if (!hashedPassword)
-        return res.status(500).json({error: "An error occurred"});
-
-      if (getUserType(userRole) === LoginType.Admin && selectedCourses.length > 0){
-        return res.status(500).json({error: "Admins cannot specify courses!"});
+      const id = await db.getIdFromUsername(pool, username, LoginType.Student);
+      if (!id) {
+        return res.status(500).json({error: "Could not obtain a corresponding student ID!"});
       }
 
       for (let i = 0; i < selectedCourses.length; i++) {
-        const courseQuery = await pool.query(`SELECT * FROM courses WHERE id = $1`, [selectedCourses[i]]);
-        if (courseQuery.rows.length < 1)
-          return res.status(500).json({error: "Could not find course in the database!"});
-      }
-
-      let insertQuery;
-      if (getUserType(userRole) === LoginType.Student) {
-        insertQuery = await pool.query(
-            `INSERT INTO student (username, actualname, academic_year, expected_graduation, password_hash) VALUES ($1,$2,$3,$4,$5)`,
-            [username, actualName, academicYear, graduationDate, hashedPassword]
+        const courseQuery = await pool.query(
+          `INSERT INTO student_courses (student_id, course_id) VALUES ($1, $2)`,
+          [id, selectedCourses[i]]
         );
 
-        const id = await db.getIdFromUsername(pool, username, LoginType.Student);
-        if (!id) {
-          return res.status(500).json({error: "Could not obtain a corresponding student ID!"});
-        }
+        if (!courseQuery)
+          return res.status(500).json({error: "An error occurred while registering for the selected course(s)!"});
+      }
 
-        for (let i = 0; i < selectedCourses.length; i++) {
-          const courseQuery = await pool.query(
-            `INSERT INTO student_courses (student_id, course_id) VALUES ($1, $2)`,
+    } else if (getUserType(userRole) === LoginType.Teacher) {
+      insertQuery = await pool.query(
+          `INSERT INTO teacher (username, actualname, password_hash) VALUES ($1,$2,$3)`,
+          [username, actualName, hashedPassword]
+      );
+
+      const id = await db.getIdFromUsername(pool, username, LoginType.Teacher);
+      if (!id) {
+        return res.status(500).json({error: "Could not obtain a corresponding teacher ID!"});
+      }
+
+      for (let i = 0; i < selectedCourses.length; i++) {
+        const courseQuery = await pool.query(
+            `INSERT INTO teacher_courses (teacher_id, course_id) VALUES ($1, $2)`,
             [id, selectedCourses[i]]
           );
 
           if (!courseQuery)
             return res.status(500).json({error: "An error occurred while registering for the selected course(s)!"});
-        }
-
-      } else if (getUserType(userRole) === LoginType.Teacher) {
-        insertQuery = await pool.query(
-            `INSERT INTO teacher (username, actualname, password_hash) VALUES ($1,$2,$3)`,
-            [username, actualName, hashedPassword]
-        );
-
-        const id = await db.getIdFromUsername(pool, username, LoginType.Teacher);
-        if (!id) {
-          return res.status(500).json({error: "Could not obtain a corresponding teacher ID!"});
-        }
-
-        for (let i = 0; i < selectedCourses.length; i++) {
-          const courseQuery = await pool.query(
-              `INSERT INTO teacher_courses (teacher_id, course_id) VALUES ($1, $2)`,
-              [id, selectedCourses[i]]
-            );
-  
-            if (!courseQuery)
-              return res.status(500).json({error: "An error occurred while registering for the selected course(s)!"});
-        }
-      } else {
-        insertQuery = await pool.query(
-            `INSERT INTO admin (username, actualname, password_hash) VALUES ($1,$2,$3)`,
-            [username, actualName, hashedPassword]
-        );
       }
-
-      if (!insertQuery) {
-        return res.status(500).json({error: "An error occurred while creating the user!"});
-      }
+    } else {
+      insertQuery = await pool.query(
+          `INSERT INTO admin (username, actualname, password_hash) VALUES ($1,$2,$3)`,
+          [username, actualName, hashedPassword]
+      );
     }
 
-    } catch (error) {
-      console.log(error);
-      return res.status(500).json({error: "Unexpected error occurred. Please try again later!"});
+    if (!insertQuery) {
+      return res.status(500).json({error: "An error occurred while creating the user!"});
+    }
+  } catch(error) {
+    return res.status(500).json({error: `Failed to create entity due to error: ${error}`});
   }
 });
 
@@ -885,7 +850,7 @@ app.post("/login", async (req, res) => {
 
     const matchRes = await bcrypt.compare(password, hashedPassword);
     if (!matchRes){
-      return res.status(401).json({error: "Unauthorized"});
+      return res.status(401).json({error: "Invalid username/password"});
     }
 
     // Verified correct password submitted, proceed to session auth

@@ -393,40 +393,27 @@ async function isCourseModuleInDatabase(pool, courseModuleId) {
 
 async function isCourseRouteValid(pool, courseId, courseTabId, courseModuleId, fileId) {
     try {
-        // Existence checks
+        // Check if course exists
         if (! await isCourseInDatabase(pool, courseId)) {
-            console.log("coruse not in db");
+            console.log("Course not in db");
             return false;
         }
 
-        if (courseTabId && ! await isCourseTabInDatabase(pool, courseTabId)) {
-            console.log("course tab not in db");
+        // Check if course tab exists and is in the correct course
+        if (courseTabId !== undefined && (! await isCourseTabInDatabase(pool, courseTabId) || ! await isCourseTabInValidCourse(pool, courseTabId, courseId))) {
+            console.log("Course tab not in db or not in the specified course");
             return false;
         }
 
-        if (courseModuleId && ! await isCourseModuleInDatabase(pool, courseModuleId)) {
-            console.log("course module not in db");
+        // Check if course module exists and is in the correct tab (if courseTabId is provided)
+        if (courseModuleId !== undefined && (! await isCourseModuleInDatabase(pool, courseModuleId) || (courseTabId !== undefined && ! await isCourseModuleInTab(pool, courseTabId, courseModuleId)))) {
+            console.log("Course module not in db or not in the specified tab");
             return false;
         }
 
-        if (fileId && ! await isFileInDatabase(pool, fileId)) {
-            console.log("file id not in db");
-            return false;
-        }
-
-        // Relation checks
-        if (courseTabId && ! await isCourseTabInValidCourse(pool, courseTabId, courseId)) {
-            console.log("course tab not in course");
-            return false;
-        }
-
-        if (courseModuleId && ! await isCourseModuleInTab(pool, courseTabId, courseModuleId)) {
-            console.log("course module not in tab");
-            return false;
-        }
-
-        if (fileId && ! await isFileAssociatedWithCourseModule(pool, courseModuleId, fileId)) {
-            console.log("file not assciated with course module");
+        // Check if file exists and is associated with the correct course module (if courseModuleId is provided)
+        if (fileId !== undefined && (! await isFileInDatabase(pool, fileId) || (courseModuleId !== undefined && ! await isFileAssociatedWithCourseModule(pool, courseModuleId, fileId)))) {
+            console.log("File not in db or not associated with the specified course module");
             return false;
         }
 
@@ -545,6 +532,29 @@ async function isTeacherAssociatedWithCourse(pool, teacherId, courseId) {
     }
 }
 
+async function createFile(pool, fileData) {
+    try {
+        const { originalname, mimetype, size, buffer } = fileData;
+
+        if(!originalname || !mimetype || !size || !buffer){
+            return undefined;
+        }
+
+        const insertQuery = `INSERT INTO files (file_name, file_type, file_size, file_data) VALUES ($1,$2,$3,$4) RETURNING id`;
+        const fileQuery = await pool.query(insertQuery, [originalname, mimetype, size, buffer]);
+
+        if (!fileQuery || !fileQuery.rows || fileQuery.rows.length === 0) {
+            return undefined;
+        }
+
+        return fileQuery.rows[0].id;
+    } catch (error) {
+        console.error("Error in createFile function: ", error);
+        return undefined;
+    }
+}
+
+
 module.exports = {
     getIdFromUsername,
     getAllEntriesFromRole,
@@ -570,5 +580,6 @@ module.exports = {
     updateCourseTab,
     getCoursesContainingCourseTab,
     isTeacherAssociatedWithCourse,
-    updateCourseModule
+    updateCourseModule,
+    createFile
 };

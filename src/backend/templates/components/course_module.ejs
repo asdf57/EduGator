@@ -1,20 +1,27 @@
-<div class="p-4">
+<div class="p-4 text-black dark:text-white">
     <h3 class="text-xl font-semibold pb-5">
         <%= courseModule.title %>
     </h3>
     <div class="course-module-description">
         <%- courseModule.description %>
     </div>
-    <% if(Object.keys(courseModule.files).length> 0) { %>
+    <% if(Object.keys(courseModule.files).length > 0) { %>
         <div class="pt-2">
         Attached files:
         <ul class="list-inside list-none">
             <% courseModule.files.forEach(function(file) { %>
-            <li>
-                <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModule.id %>/<%= file.id %>" download class="text-blue-600 hover:text-blue-800" onclick="event.stopPropagation()">
-                    <ion-icon name="document-outline"></ion-icon>
-                    <%= file.file_name %> (<%= file.file_size %> bytes)
-                </a>
+            <li class="flex justify-start items-center">
+                <div class="flex justify-between items-center w-full max-w-lg">
+                    <a id="<%= file.id %>" href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModule.id %>/<%= file.id %>" download class="text-blue-600 hover:text-blue-800 truncate">
+                        <ion-icon name="document-outline"></ion-icon>
+                        <%= file.file_name %> (<%= file.file_size %> bytes)
+                    </a>
+                    <% if (role === "teacher" ) { %>
+                        <button class="file-delete-btn hover:bg-indigo-800 rounded p-2">
+                            <ion-icon name="trash-outline"></ion-icon>
+                        </button>
+                    <% } %>
+                </div>
             </li>
             <% }); %>
         </ul>
@@ -36,3 +43,41 @@
         </div>
     <% } %>
 </div>
+
+<script>
+    //Since this is imported for each course module, we need to scope this logic to avoid redeclaration errors
+    {
+        const deleteFileButtons = document.querySelectorAll(".file-delete-btn");
+        deleteFileButtons.forEach(button => {
+            button.addEventListener("click", async function(event) {
+                event.stopPropagation();
+                try {
+                    const parentElement = this.closest('div');
+                    const fileLink = parentElement.querySelector('a');
+
+                    if (fileLink) {
+                        const fileId = fileLink.id;
+                        const response = await fetch("/delete/file", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ fileId: fileId })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error("Failed to delete file!");
+                        }
+
+                        response.text().then(() => {
+                            window.location.reload();
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error caught:", error);
+                    showErrorModal("Could not delete file due to error: " + error.message);
+                }
+            });
+        });
+    }
+</script>
