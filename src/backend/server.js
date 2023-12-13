@@ -214,6 +214,10 @@ app.post("/upload/:type", upload.any(), async (req, res) => {
       return res.json(fileIdRes);
     }
 
+    if (type === "submission") {
+        console.log("Hello World")
+    }
+
     if (req.session.role !== LoginType.Student) {
       return res.status(401).json({error: "Unauthorized"});
     }

@@ -76,6 +76,13 @@ CREATE TABLE course_module_files (
     PRIMARY KEY (course_module_id, file_id)
 );
 
+-- Junction for linking attached files to submission
+CREATE TABLE submission_files (
+    submission_id INTEGER REFERENCES submission(id) ON DELETE CASCADE,
+    file_id INTEGER REFERENCES files(id) ON DELETE CASCADE,
+    PRIMARY KEY (submission_id, file_id)
+);
+
 CREATE TABLE submissions (
         id SERIAL PRIMARY KEY,
         assignment_id INTEGER REFERENCES assignments(id) ON DELETE SET NULL,
