@@ -11,12 +11,12 @@ services:
     env_file:
       - .env
     depends_on:
-      edugator-db:
+      edugators-db:
         condition: service_healthy
 
-  edugator-db:
+  edugators-db:
     image: postgres:13
-    container_name: edugator-db
+    container_name: edugators-db
     env_file:
       - .env
     ports:
