@@ -643,6 +643,48 @@ async function getAllStudentSubmissionsForAssignment(pool, assignmentId) {
     }
 }
 
+async function getStudentSubmissionsForAssignment(pool, assignmentId, studentId) {
+    try {
+        // Validate existence of the assignment and student
+        if (!await isAssignmentInDatabase(pool, assignmentId) || !await isStudentInDatabase(pool, studentId)) {
+            console.log(`Assignment or student does not exist.`);
+            return {};
+        }
+
+        // Query to get submissions with their files for the given student and assignment
+        const submissionsQuery = await pool.query(`
+            SELECT afs.student_id, f.id AS file_id, f.file_name, afs.submission_group_id, afs.submission_time
+            FROM assignment_file_submissions afs
+            JOIN files f ON afs.file_id = f.id
+            WHERE afs.assignment_id = $1 AND afs.student_id = $2
+            ORDER BY afs.submission_group_id`,
+            [assignmentId, studentId]
+        );
+
+        let submissions = {};
+        submissionsQuery.rows.forEach(row => {
+            const { file_id, file_name, submission_group_id, submission_time } = row;
+
+            if (!submissions[submission_group_id]) {
+                submissions[submission_group_id] = {
+                    submission_time: submission_time,
+                    files: []
+                };
+            }
+
+            submissions[submission_group_id].files.push({
+                file_id: file_id,
+                file_name: file_name
+            });
+        });
+
+        return submissions;
+    } catch (error) {
+        console.log(`Error while getting student submissions for assignment: ${error}`);
+        return {};
+    }
+}
+
 async function getAssignmentIdFromCourseModule(pool, courseModuleId) {
     try {
         const query = await pool.query(`SELECT id FROM assignments WHERE module_id = $1`, [courseModuleId]);
@@ -716,6 +758,7 @@ module.exports = {
     isStudentInDatabase,
     associateStudentFilesToAssignment,
     getAllStudentSubmissionsForAssignment,
+    getStudentSubmissionsForAssignment,
     getAssignmentIdFromCourseModule,
     getSubmissionsWithFiles
 };
