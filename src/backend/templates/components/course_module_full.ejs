@@ -11,12 +11,12 @@
             Attached files:
             <ul class="list-inside list-none">
                 <% courseModule.files.forEach(function(file) { %>
-                <li>
-                    <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
-                        <ion-icon name="document-outline"></ion-icon>
-                        <%= file.file_name %> (<%= file.file_size %> bytes)
-                    </a>
-                </li>
+                    <li>
+                        <a href="/course/<%= courseId %>/<%= courseTabId %>/<%= courseModuleId %>/<%= file.id %>" download class="text-blue-400 hover:text-blue-200">
+                            <ion-icon name="document-outline"></ion-icon>
+                            <%= file.file_name %> (<%= file.file_size %> bytes)
+                        </a>
+                    </li>
                 <% }); %>
             </ul>
         </div>
@@ -25,9 +25,7 @@
 
 <!-- File selection input -->
 <% if (role === "student") { %>
-    <label class="label">
-        <span class="label-text">Add Attachments</span>
-    </label>
+
     <div class="container mx-auto my-10">
         <form action="/upload/content" class="dropzone" id="myDropzone">
             <div class="fallback">
@@ -38,6 +36,8 @@
                 Drop files here or click to upload.
             </div>
         </form>
+
+        <button id="submit-btn" class="btn">Submit Assignment</button>
     </div>
 <% } %>
 
@@ -69,40 +69,73 @@
 
 <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
 
-<script>
-    // Initialize Dropzone on the form element
-    document.addEventListener("DOMContentLoaded", function() {
-        const dropzoneElement = document.querySelector("#myDropzone");
-        if (dropzoneElement) {
-            const myDropzone = new Dropzone(dropzoneElement, {
-                // your configuration
-            });
+<!-- Only include this script if we're a student!!! -->
+<% if (role === "student") { %>
+    <script>
+        const submitButton = document.getElementById("submit-btn");
 
-            dropzoneElement.addEventListener("submit", function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (myDropzone.files.length) {
-                    myDropzone.processQueue(); // Process all queued files
-                } else {
-                    alert("Please select files to upload.");
+        function uploadStudentFiles(fileIds) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const payload = JSON.stringify({
+                        assignmentId: "<%= courseModule.assignment.id %>",
+                        fileIds: fileIds,
+                    });
+
+                    const res = await fetch("/upload/submission", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: payload
+                    });
+
+                    if (!res.ok) {
+                        throw new Error("Failed to submit assignment.");
+                    }
+                    resolve();
+                } catch (error) {
+                    reject(error);
                 }
             });
-        } else {
-            console.error("Dropzone element not found");
         }
-    });
 
+        Dropzone.options.myDropzone = {
+            paramName: "file",
+            maxFilesize: 20,
+            addRemoveLinks: true,
+            uploadMultiple: true,
+            parallelUploads: 100,
+            maxFiles: 100,
+            autoProcessQueue: false,
+            init: function() {
+                let fileIds = [];
 
-    document.querySelector("#myDropzone").addEventListener("submit", function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (myDropzone.files.length) {
-            myDropzone.processQueue(); // Process all queued files
-        } else {
-            alert("Please select files to upload.");
-        }
-    });
-</script>
+                submitButton.addEventListener("click", async () => {
+                    if (this.getQueuedFiles().length > 0) {
+                        this.processQueue();
+                    } else {
+                        alert("Please upload at least one file.");
+                    }
+                });
+
+                this.on("successmultiple", function(files, response) {
+                    fileIds = response.map(file => file.id);
+                });
+
+                this.on("queuecomplete", async function() {
+                    try {
+                        await uploadStudentFiles(fileIds);
+                        alert("Assignment submitted successfully.");
+                        window.location.reload();
+                    } catch (error) {
+                        alert(`Error: ${error.message}`);
+                    }
+                });
+            }
+        };
+    </script>
+<% } %>
 
 <style>
     .dropzone {

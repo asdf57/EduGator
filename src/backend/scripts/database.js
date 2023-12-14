@@ -320,7 +320,7 @@ async function updateCourseModule(pool, courseModuleId, updatePayload) {
         return false;
     }
 }
-  
+
 async function isFileAssociatedWithCourseModule(pool, courseModuleId, fileId) {
     try {
         const query = await pool.query(`SELECT * FROM course_module_files WHERE course_module_id = $1 AND file_id = $2`, [courseModuleId, fileId]);
@@ -554,6 +554,41 @@ async function createFile(pool, fileData) {
     }
 }
 
+async function associateStudentFilesToAssignment(pool, fileId, assignmentId, studentId) {
+    try {
+        // First, check if the file exists in the database
+        if (!await isFileInDatabase(pool, fileId)) {
+            console.log(`File with ID ${fileId} does not exist.`);
+            return false;
+        }
+
+        // Check if the assignment exists in the database
+        const assignmentQuery = await pool.query(`SELECT * FROM assignments WHERE id = $1`, [assignmentId]);
+        if (assignmentQuery.rows.length === 0) {
+            console.log(`Assignment with ID ${assignmentId} does not exist.`);
+            return false;
+        }
+
+        // Check if the student exists in the database
+        const studentQuery = await pool.query(`SELECT * FROM student WHERE id = $1`, [studentId]);
+        if (studentQuery.rows.length === 0) {
+            console.log(`Student with ID ${studentId} does not exist.`);
+            return false;
+        }
+
+        // Insert the file, assignment, and student association into the database
+        await pool.query(`
+            INSERT INTO assignment_file_submissions (assignment_id, file_id, student_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT DO NOTHING`,
+            [assignmentId, fileId, studentId]
+        );
+        return true;
+    } catch (error) {
+        console.log(`Error while associating file with student and assignment: ${error}`);
+        return false;
+    }
+}
 
 module.exports = {
     getIdFromUsername,
@@ -581,5 +616,6 @@ module.exports = {
     getCoursesContainingCourseTab,
     isTeacherAssociatedWithCourse,
     updateCourseModule,
-    createFile
+    createFile,
+    associateStudentFilesToAssignment
 };
