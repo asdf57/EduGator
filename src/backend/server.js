@@ -184,11 +184,7 @@ app.post("/upload/submission", upload.any(), async (req, res) => {
     const studentId = await db.getIdFromUsername(pool, req.session.username, req.session.role);
 
     if (!studentId) {
-      return res.status(500).render("pages/error", {
-        error: "Couldn't upload submission for student!",
-        username: req.session.username,
-        role: req.session.role
-      });
+      return res.status(500).json({error: "Couldn't upload submission for student!"});
     }
 
     if (req.session.role !== LoginType.Student) {
@@ -206,11 +202,7 @@ app.post("/upload/submission", upload.any(), async (req, res) => {
 
     return res.end();
   } catch (error) {
-    return res.status(500).render("pages/error", {
-      error: "Couldn't upload submission for student!",
-      username: req.session.username,
-      role: req.session.role
-    });
+    return res.status(500).json({error: "Couldn't upload submission for student!"});
   }
 });
 
@@ -450,7 +442,11 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     return res.render("pages/course", {username: req.session.username, role: req.session.role, courseId: courseId, courseTabs: courseTabsQuery.rows});
   } catch (error) {
       console.error(error);
-      return res.status(500).send("Error loading course page");
+      return res.status(500).render("pages/error", {
+        error: "Error loading course page",
+        username: req.session.username,
+        role: req.session.role
+      });
   }
 });
 
