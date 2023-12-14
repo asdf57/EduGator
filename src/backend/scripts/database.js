@@ -320,7 +320,7 @@ async function updateCourseModule(pool, courseModuleId, updatePayload) {
         return false;
     }
 }
-  
+
 async function isFileAssociatedWithCourseModule(pool, courseModuleId, fileId) {
     try {
         const query = await pool.query(`SELECT * FROM course_module_files WHERE course_module_id = $1 AND file_id = $2`, [courseModuleId, fileId]);
@@ -554,6 +554,136 @@ async function createFile(pool, fileData) {
     }
 }
 
+async function isAssignmentInDatabase(pool, assignmentId) {
+    try {
+        const query = await pool.query(`SELECT * FROM assignments WHERE id = $1`, [assignmentId]);
+        return query.rows.length > 0;
+    } catch (error) {
+        console.log(`Error in isAssignmentInDatabase: ${error}`);
+        return false;
+    }
+}
+
+async function isStudentInDatabase(pool, studentId) {
+    try {
+        const query = await pool.query(`SELECT * FROM student WHERE id = $1`, [studentId]);
+        return query.rows.length > 0;
+    } catch (error) {
+        console.log(`Error in isStudentInDatabase: ${error}`);
+        return false;
+    }
+}
+
+
+async function associateStudentFilesToAssignment(pool, fileId, assignmentId, studentId, submissionGroupId) {
+    try {
+        // Ensure the file, assignment, and student exist
+        if (!await isFileInDatabase(pool, fileId) || !await isAssignmentInDatabase(pool, assignmentId) || !await isStudentInDatabase(pool, studentId)) {
+            console.log(`Validation failed for file, assignment, or student.`);
+            return false;
+        }
+
+        // Insert the association with the submission group ID
+        await pool.query(`
+            INSERT INTO assignment_file_submissions (assignment_id, file_id, student_id, submission_group_id)
+            VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+            [assignmentId, fileId, studentId, submissionGroupId]
+        );
+        return true;
+    } catch (error) {
+        console.log(`Error while associating file with student and assignment: ${error}`);
+        return false;
+    }
+}
+
+async function getAllStudentSubmissionsForAssignment(pool, assignmentId) {
+    try {
+        // First, check if the assignment exists
+        const assignmentQuery = await pool.query(`SELECT * FROM assignments WHERE id = $1`, [assignmentId]);
+        if (assignmentQuery.rows.length === 0) {
+            console.log(`Assignment with ID ${assignmentId} does not exist.`);
+            return {};
+        }
+
+        // Query to get all submissions with their files for the given assignment
+        const submissionsQuery = await pool.query(`
+            SELECT afs.student_id, f.id AS file_id, f.file_name, afs.submission_group_id, afs.submission_time
+            FROM assignment_file_submissions afs
+            JOIN files f ON afs.file_id = f.id
+            WHERE afs.assignment_id = $1
+            ORDER BY afs.student_id, afs.submission_group_id`,
+            [assignmentId]
+        );
+
+        let submissions = {};
+        submissionsQuery.rows.forEach(row => {
+            const { student_id, file_id, file_name, submission_group_id, submission_time } = row;
+
+            if (!submissions[student_id]) {
+                submissions[student_id] = {};
+            }
+
+            if (!submissions[student_id][submission_group_id]) {
+                submissions[student_id][submission_group_id] = {
+                    submission_time: submission_time,
+                    files: []
+                };
+            }
+
+            submissions[student_id][submission_group_id].files.push({
+                file_id: file_id,
+                file_name: file_name
+            });
+        });
+
+        return submissions;
+    } catch (error) {
+        console.log(`Error while getting all student submissions for assignment: ${error}`);
+        return {};
+    }
+}
+
+async function getAssignmentIdFromCourseModule(pool, courseModuleId) {
+    try {
+        const query = await pool.query(`SELECT id FROM assignments WHERE module_id = $1`, [courseModuleId]);
+        if (query.rows.length > 0) {
+            return query.rows[0].id;
+        }
+        return undefined;
+    } catch (error) {
+        console.log(`Error in getAssignmentIdFromCourseModule: ${error}`);
+        return undefined;
+    }
+}
+
+async function getSubmissionsWithFiles(pool, assignmentId) {
+    const studentSubmissions = await getAllStudentSubmissionsForAssignment(pool, assignmentId);
+    const files = {};
+
+    for (const [studentId, submissionGroups] of Object.entries(studentSubmissions)) {
+      files[studentId] = {};
+
+      for (const [submissionGroupId, submissionEntry] of Object.entries(submissionGroups)) {
+        files[studentId][submissionGroupId] = [];
+        const fileArray = Array.isArray(submissionEntry["files"]) ? submissionEntry["files"] : [];
+
+        for (const file of fileArray) {
+          const fileData = await getFileData(pool, file.file_id);
+          if (!fileData) {
+            console.log(`File with ID ${file.file_id} not found.`);
+            continue; // Skip to the next file if file data could not be retrieved
+          }
+          files[studentId][submissionGroupId].push({
+            name: file.file_name,
+            data: fileData.file_data, // assuming 'file_data' contains the binary content of the file
+            uuid: submissionGroupId // using submissionGroupId as the identifier
+          });
+        }
+      }
+    }
+
+    return files;
+}
 
 module.exports = {
     getIdFromUsername,
@@ -581,5 +711,11 @@ module.exports = {
     getCoursesContainingCourseTab,
     isTeacherAssociatedWithCourse,
     updateCourseModule,
-    createFile
+    createFile,
+    isAssignmentInDatabase,
+    isStudentInDatabase,
+    associateStudentFilesToAssignment,
+    getAllStudentSubmissionsForAssignment,
+    getAssignmentIdFromCourseModule,
+    getSubmissionsWithFiles
 };
