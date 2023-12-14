@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Entities</title>
-    <link rel="stylesheet" href="dist/style.css">
+    <%- include( '../components/styling' ) %>
 </head>
 
 <body>
@@ -72,4 +72,80 @@
         </div>
     </main>
 </body>
+
+<script>
+    const deleteButton = document.getElementById("delete");
+    const roleSelect = document.getElementById("roleSelect");
+    const resultDiv = document.getElementById("result");
+
+    deleteButton.addEventListener("click", async () => {
+        let entities = undefined;
+        if (roleSelect.value === "student") {
+            entities = document.getElementsByName("student");
+        } else if (roleSelect.value === "teacher") {
+            entities = document.getElementsByName("teacher");
+        } else if (roleSelect.value === "admin") {
+            entities = document.getElementsByName("admin");
+        }
+
+        try {
+            const selectedEntities = [];
+            entities.forEach((checkbox) => {
+                if (checkbox.checked) {
+                    selectedEntities.push(checkbox.value);
+                }
+            });
+
+            resultDiv.textContent = "";
+            const response = await fetch("/delete", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    usernames: selectedEntities,
+                    role: roleSelect.value
+                })
+            });
+
+            if (response.ok) {
+                roleSelect.selectedIndex = 0; // Reset the selection
+                toggleFields(); // Hide the lists
+                window.location.reload();
+            } else {
+                const body = await response.json();
+                if (body.hasOwnProperty("error")) {
+                    resultDiv.textContent = body.error;
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+    function toggleFields() {
+        const adminList = document.getElementById("admins");
+        const studentList = document.getElementById("students");
+        const teacherList = document.getElementById("teachers");
+
+        if (roleSelect.value === "student") {
+            adminList.classList.add("hidden");
+            teacherList.classList.add("hidden");
+            studentList.classList.remove("hidden");
+        } else if (roleSelect.value === "teacher") {
+            adminList.classList.add("hidden");
+            studentList.classList.add("hidden");
+            teacherList.classList.remove("hidden");
+        } else if (roleSelect.value === "admin") {
+            studentList.classList.add("hidden");
+            teacherList.classList.add("hidden");
+            adminList.classList.remove("hidden");
+        } else {
+            adminList.classList.add("hidden");
+            studentList.classList.add("hidden");
+            teacherList.classList.add("hidden");
+        }
+    }
+</script>
+
 </html>
