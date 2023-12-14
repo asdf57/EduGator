@@ -104,6 +104,9 @@ CREATE TABLE teacher_courses (
         course_id INTEGER REFERENCES courses(id) ON DELETE SET NULL
 );
 
+-- Create Admin
+INSERT INTO admin (username, actualname, password_hash) VALUES
+('root', 'Root User', '$2a$10$MJUjNPrTd7mNJG3g15TcKugA8KaLNOKr327SF1g0Y7uT7KXF11tk2');
 
 -- Create Students
 INSERT INTO student (username, actualname,academic_year,expected_graduation,password_hash) VALUES
@@ -136,7 +139,7 @@ INSERT INTO teacher_courses(teacher_id,course_id) VALUES (1,1);
 INSERT INTO teacher_courses(teacher_id,course_id) VALUES (2,1);
 
 -- Course tab examples
-INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 1', 1, TRUE);
-INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 2', 1, TRUE);
-INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 2', 1, TRUE);
-INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 1', 1, TRUE);
+INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Week 1', 1, TRUE);
+INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Week 2', 1, TRUE);
+INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Week 3', 1, TRUE);
+INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Week 4', 1, TRUE);
