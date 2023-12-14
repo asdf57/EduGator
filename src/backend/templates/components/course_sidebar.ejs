@@ -2,7 +2,7 @@
 
 <%- include( '../components/error_modal' ) %>
 
-<aside class="sidebar h-screen menu p-4 shadow-lg bg-base-100 w-64 flex flex-col justify-between">
+<aside class="sidebar h-screen menu p-4 shadow-lg w-64 flex flex-col justify-between bg-gray-200 text-black dark:bg-gray-700 dark:text-white">
     <!-- Scrollable list for course tabs -->
     <ul courseid="<%= courseId %>" id="course-tabs" class="overflow-y-auto flex-1">
         <% for (let i = 0; i < courseTabs.length; i++) { %>
@@ -53,30 +53,41 @@
         }
     });
 
+    function navigateToProperUrl(courseTabId) {
+        //You can delete a course tab while IN a course tab or while on the course module page
+        let currentUrl = window.location.href;
+        let urlSegments = currentUrl.split('/');
+
+        //If we're deleting from the course modules page or from an individual course module page, skip this
+        if(urlSegments.length < 6 || urlSegments[5] != courseTabId){
+            window.location.reload();
+            return;
+        }
+
+        //If we're deleting from on or under the delete course tab page, go back to the course module page
+        window.location.href = "/course/" + "<%= courseId %>";
+    }
+
     //Delete buttons logic
     deleteButtons.forEach(button => {
         button.addEventListener("click", async function(event) {
             event.stopPropagation();
             try {
-                // Get the id of the parent li element
                 const courseTabId = this.closest('li').id;
-
-                // POST request to delete the course tab
                 const payload = await fetch("/delete/coursetab", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({
-                        courseTabId: courseTabId
-                    })
+                    body: JSON.stringify({ courseTabId: courseTabId })
                 });
 
                 if (!payload.ok) {
                     throw new Error("Failed to delete course tab!");
                 }
 
-                window.location.reload();
+                navigateToProperUrl(courseTabId);
+
             } catch(error) {
                 console.log("Error caught:", error);
                 showErrorModal("Could not delete course tab due to error: " + error.message);

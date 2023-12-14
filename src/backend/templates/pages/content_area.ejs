@@ -15,17 +15,16 @@
       <div class="flex">
         <%- include('../components/course_sidebar') %>
 
-          <main class="flex-grow p-5">
+          <main class="flex-grow p-5 bg-gray-100 text-black dark:bg-gray-800 dark:text-white">
             <h1 class="text-3xl mb-5 font-semibold">
               <%= courseTab.tab_name %>
             </h1>
 
-            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="shadow-lg rounded-lg overflow-hidden">
               <ul id="content-items" class="divide-y divide-gray-200">
                 <% for (let i=0; i < courseModules.length; i++) { %>
-                  <li coursemoduleid="<%= courseModules[i].id %>"
-                      class="module-item hover:bg-gray-50 mb-2 draggable-item p-2 cursor-pointer">
-                    <div class="flex items-center justify-between hover:bg-gray-50">
+                  <li coursemoduleid="<%= courseModules[i].id %>" class="module-item mb-2 draggable-item p-2 cursor-pointer">
+                    <div class="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700">
                       <div onclick="navigateToCourseModulePage('<%= courseModules[i].id %>')" class="flex-grow">
                         <%- include('../components/course_module', {courseModule: courseModules[i]}) %>
                       </div>
@@ -53,10 +52,6 @@
             <% } %>
           </main>
       </div>
-
-      <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
-      <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-      <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </body>
 </html>
 

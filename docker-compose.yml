@@ -4,14 +4,15 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile.node
-    container_name: edugators-server
+      dockerfile: Dockerfile.dev
+    container_name: edugator-server
     ports:
       - "3000:3000"
     env_file:
       - .env
     depends_on:
-      - edugators-db
+      edugators-db:
+        condition: service_healthy
 
   edugators-db:
     image: postgres:13
@@ -22,3 +23,8 @@ services:
       - "5432:5432"
     volumes:
       - ./src/backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 20s
+      retries: 5

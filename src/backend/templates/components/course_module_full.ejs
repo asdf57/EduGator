@@ -1,4 +1,5 @@
-<div class="bg-gray-800 text-white p-5 rounded-md w-full md:w-1/2">
+<link href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" rel="stylesheet" />
+<div class="p-5 rounded-md w-full md:w-1/2 text-black dark:text-white">
     <h1 class="text-xl font-semibold pb-5">
         <%= courseModule.title %>
     </h1>
@@ -42,7 +43,7 @@
 
 <!-- Right column for Grading Information -->
 <% if(courseModule.assignment !== undefined) { %>
-    <div class="card bg-gray-700 text-white w-full md:w-96 shadow-2xl ml-4 rounded-md">
+    <div class="card bg-gray-200 text-black dark:text-white dark:bg-gray-700 w-full md:w-96 shadow-2xl ml-4 rounded-md">
         <div class="card-body">
             <h2 class="card-title text-center">Grading</h2>
             <div class="divider"></div>
@@ -70,21 +71,27 @@
 
 <script>
     // Initialize Dropzone on the form element
-    const myDropzone = new Dropzone("#myDropzone", {
-        url: "/upload/content",
-        paramName: "file",
-        maxFilesize: 20, // MB
-        parallelUploads: 20,
-        uploadMultiple: true,
-        autoProcessQueue: false,
-        addRemoveLinks: true,
-        init: function() {
-            this.on("addedfile", function(file) {
+    document.addEventListener("DOMContentLoaded", function() {
+        const dropzoneElement = document.querySelector("#myDropzone");
+        if (dropzoneElement) {
+            const myDropzone = new Dropzone(dropzoneElement, {
+                // your configuration
             });
-            this.on("queuecomplete", function() {
+
+            dropzoneElement.addEventListener("submit", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (myDropzone.files.length) {
+                    myDropzone.processQueue(); // Process all queued files
+                } else {
+                    alert("Please select files to upload.");
+                }
             });
+        } else {
+            console.error("Dropzone element not found");
         }
     });
+
 
     document.querySelector("#myDropzone").addEventListener("submit", function(e) {
         e.preventDefault();

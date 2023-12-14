@@ -1,7 +1,7 @@
 # EduGator
 A CRUD Learning Management System
 
-# Setup & Installation
+# Dev Setup & Installation
 To build EduGators, please first download [Docker Compose](https://docs.docker.com/compose/install/). Once downloaded, navigate into the root of the `EduGators` directory and run
 ```bash
 docker-compose -f docker-compose.yml build
@@ -41,6 +41,24 @@ docker-compose -f docker-compose.yml build
 ```bash
 docker-compose -f docker-compose.yml up
 ```
+
+# Production Deployment
+First, type:
+```bash
+fly launch
+```
+
+Then, configure the application settings appropriately in the spawned settings webpage. This command only needs to be run once! Next, run the following command:
+```bash
+npm run setup
+```
+
+which will set up the remote Postgres database. Finally, type:
+```bash
+fly deploy
+```
+
+to deploy the web app.
 
 ## Database login
 To login to the Edugators database locally, run the following after starting up the docker-compose system:
