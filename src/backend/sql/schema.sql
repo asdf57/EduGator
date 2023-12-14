@@ -76,6 +76,15 @@ CREATE TABLE course_module_files (
     PRIMARY KEY (course_module_id, file_id)
 );
 
+CREATE TABLE assignment_file_submissions (
+    assignment_id INTEGER REFERENCES assignments(id) ON DELETE CASCADE,
+    file_id INTEGER REFERENCES files(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES student(id) ON DELETE CASCADE,
+    submission_group_id UUID,
+    submission_time TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (assignment_id, file_id, student_id, submission_group_id)
+);
+
 CREATE TABLE submissions (
         id SERIAL PRIMARY KEY,
         assignment_id INTEGER REFERENCES assignments(id) ON DELETE SET NULL,
@@ -96,31 +105,38 @@ CREATE TABLE teacher_courses (
 );
 
 
+-- Create Students
 INSERT INTO student (username, actualname,academic_year,expected_graduation,password_hash) VALUES
 ('testUser','User User','freshman','01/01/2024','$2a$12$nFNSWUpogmePH7Ui5YwDTeVUp4BdsQT4qyfl/epk5uiHvG5zCVTGa');
 INSERT INTO student (username, actualname,academic_year,expected_graduation,password_hash) VALUES
 ('tester','User two','freshman','01/01/2024','$2a$12$IMp2cGT0uJ/v6BSHo5lfSerg1tNRVKK5wnrlnGKIDvsBbfNxUkTuq');
+INSERT INTO student (username, actualname,academic_year,expected_graduation,password_hash) VALUES
+('testUser2','User User','freshman','01/01/2024','$2a$12$nFNSWUpogmePH7Ui5YwDTeVUp4BdsQT4qyfl/epk5uiHvG5zCVTGa');
 
+-- Create Teachers
 INSERT INTO teacher (username,actualname,password_hash) VALUES ('testTeacher','Teach Teacher','$2a$12$s9Ehm.s2FDmo5ONh4Jmp/.HeTiMukNe5jXAGQRfbIWAPZNcXTZlBG');
 INSERT INTO teacher (username,actualname,password_hash) VALUES ('t2','Bob','$2b$10$2UA8/YIhdjbJ05/XIcFQuuQZ/qsEWCHTSLJQRIJAqHpq6d4ZBR3Vq');
 
-
+-- Create Courses
 INSERT INTO courses (course_name,description,course_start,course_end) VALUES ('courseA','test','01/01/2024','07/07/2024');
 INSERT INTO courses (course_name,description,course_start,course_end) VALUES ('courseB','This is another test','01/01/2024','07/07/2024');
 INSERT INTO courses (course_name,description,course_start,course_end) VALUES ('courseC','test last test','03/01/2024','07/07/2024');
 
+-- Assign Students to Courses
 INSERT INTO student_courses(student_id,course_id) VALUES (1,2);
-INSERT INTO student_courses(student_id,course_id) VALUES (2,2);
 INSERT INTO student_courses(student_id,course_id) VALUES (1,1);
+INSERT INTO student_courses(student_id,course_id) VALUES (2,2);
+INSERT INTO student_courses(student_id,course_id) VALUES (3,2);
+INSERT INTO student_courses(student_id,course_id) VALUES (3,1);
 
+-- Assign Teachers to Courses
 INSERT INTO teacher_courses(teacher_id,course_id) VALUES (1,2);
 INSERT INTO teacher_courses(teacher_id,course_id) VALUES (1,2);
 INSERT INTO teacher_courses(teacher_id,course_id) VALUES (1,1);
 INSERT INTO teacher_courses(teacher_id,course_id) VALUES (2,1);
 
-
+-- Course tab examples
 INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 1', 1, TRUE);
 INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 2', 1, TRUE);
 INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 2', 1, TRUE);
-
 INSERT INTO course_tabs (tab_name,course_id,visibility) VALUES ('Test Tab 1', 1, TRUE);
