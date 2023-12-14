@@ -182,59 +182,48 @@ app.post("/delete-course/:courseId", async (req, res) => {
   }
 });
 
-//Associates already uploaded files with student submission
-app.post("/upload/submission", upload.any(), async (req, res) => {
+app.post("/upload/:type", upload.any(), async (req, res) => {
   try {
-    //Get the assignment and file ids for the files the user uploaded from the payload
-    const { assignmentId, fileIds } = req.body;
-    const studentId = await db.getIdFromUsername(pool, req.session.username, req.session.role);
+    const type = req.params.type;
 
-    if (!studentId) {
-      return res.status(500).render("pages/error", {
-        error: "Couldn't upload submission for student!",
-        username: req.session.username,
-        role: req.session.role
-      });
+    if (!type || typeof type !== "string" || !["content", "submission"].includes(type)) {
+      return res.status(400).json({error: "Invalid upload type was specified!"});
+    }
+
+    const files = req.files;
+
+    //Teacher course content file uploading logic
+    if (type === "content") {
+      if (req.session.role !== LoginType.Teacher) {
+        return res.status(401).json({error: "Unauthorized"});
+      }
+
+      const fileIdRes = {}
+
+      //Create files
+      for (const file of files) {
+        const fileId = await db.createFile(pool, file);
+        console.log(`Got file id: ${fileId}`);
+        if (!fileId) {
+          return res.status(500).json({error: "Failed to insert uploaded file(s)!"});
+        }
+
+        fileIdRes[file.originalname] = fileId;
+      }
+
+      return res.json(fileIdRes);
     }
 
     if (req.session.role !== LoginType.Student) {
       return res.status(401).json({error: "Unauthorized"});
     }
 
-    //Associate the uploaded files
-    for (const fileId of Object.values(fileIds)){
-      console.log(`Received submission file id for assignment ${assignmentId}: ${fileId}`);
-      await db.associateStudentFilesToAssignment(pool, fileId, assignmentId, studentId);
-    }
-
-    return res.end();
-  } catch (error) {
-    return res.status(500).render("pages/error", {
-      error: "Couldn't upload submission for student!",
-      username: req.session.username,
-      role: req.session.role
-    });
-  }
-});
-
-//Creates files
-app.post("/upload/content", upload.any(), async (req, res) => {
-  try {
-    const files = req.files;
-    const fileIdRes = {}
-
-    //Create files
     for (const file of files) {
-      const fileId = await db.createFile(pool, file);
-      console.log(`Got file id: ${fileId}`);
-      if (!fileId) {
-        return res.status(500).json({error: "Failed to insert uploaded file(s)!"});
-      }
-
-      fileIdRes[file.originalname] = fileId;
+      const fileBuffer = fs.readFileSync(file.path);
+      const query = 'INSERT INTO files(file_name, file_data) VALUES($1, $2)';
+      const values = [file.originalname, fileBuffer];
+      await pool.query(query, values);
     }
-
-    return res.json(fileIdRes);
   } catch (error) {
     console.log(`Failed to upload file due to error: ${error}`);
     return res.status(500).json({error: `Failed to upload file due to error: ${error}`});
