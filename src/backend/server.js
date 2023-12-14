@@ -9,6 +9,8 @@ const fs = require('fs');
 const db = require("./scripts/database");
 const course = require("./scripts/course");
 const { LoginType, getUserType } = require('./scripts/roles');
+const { v4: uuidv4 } = require('uuid');
+const JSZip = require('jszip');
 
 //Global constants
 const app = express();
@@ -57,6 +59,26 @@ app.use((err, req, res, next) => {
 });
 
 app.use(express.urlencoded({ extended: true }));
+
+async function createZipFromFiles(submissions) {
+  const zip = new JSZip();
+
+  // Loop through each student's submissions
+  for (const [studentId, submissionGroups] of Object.entries(submissions)) {
+    // Loop through each submission group for the student
+    for (const [submissionGroupId, files] of Object.entries(submissionGroups)) {
+      const folder = zip.folder(`${studentId}_${submissionGroupId}`); // Use studentId and submissionGroupId for folder name
+      // Add each file to the folder
+      for (const file of files) {
+        // Assuming 'file.data' is the binary content of the file
+        folder.file(file.name, file.data, { binary: true });
+      }
+    }
+  }
+
+  // Generate the zip file
+  return zip.generateAsync({ type: 'nodebuffer' });
+}
 
 app.get("/home", async (req, res) => {
   try {
@@ -201,10 +223,13 @@ app.post("/upload/submission", upload.any(), async (req, res) => {
       return res.status(401).json({error: "Unauthorized"});
     }
 
+    //Generate submission UUID
+    const submissionGroupId = uuidv4();
+
     //Associate the uploaded files
     for (const fileId of Object.values(fileIds)){
-      console.log(`Received submission file id for assignment ${assignmentId}: ${fileId}`);
-      await db.associateStudentFilesToAssignment(pool, fileId, assignmentId, studentId);
+      console.log(`Associating file id ${fileId} with submission group ${submissionGroupId}`);
+      await db.associateStudentFilesToAssignment(pool, fileId, assignmentId, studentId, submissionGroupId);
     }
 
     return res.end();
@@ -238,6 +263,41 @@ app.post("/upload/content", upload.any(), async (req, res) => {
   } catch (error) {
     console.log(`Failed to upload file due to error: ${error}`);
     return res.status(500).json({error: `Failed to upload file due to error: ${error}`});
+  }
+});
+
+app.get('/download/submissions/:assignmentId', async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+
+    // Ensure the assignmentId is a valid number
+    if (!assignmentId || isNaN(parseInt(assignmentId))) {
+      return res.status(400).send('Invalid assignment ID');
+    }
+
+    const submissions = await db.getSubmissionsWithFiles(pool, assignmentId);
+
+    // Ensure there are submissions to process
+    if (!submissions || Object.keys(submissions).length === 0) {
+      return res.status(404).send('No submissions found for this assignment');
+    }
+
+    const zipBuffer = await createZipFromFiles(submissions);
+
+    // Check if ZIP creation was successful
+    if (!zipBuffer) {
+      return res.status(500).send('Failed to create ZIP file');
+    }
+
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="submissions_${assignmentId}.zip"`
+    });
+
+    res.send(zipBuffer);
+  } catch (error) {
+    console.error('Failed to download submissions:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -358,8 +418,22 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     //Shortcut to obtain info on the selected course tab
     const courseTab = courseTabsQuery.rows.find(item => item.id == courseTabId);
 
+    //Render course module page
     if (courseModuleId) {
       const courseModule = await db.getCourseModule(pool, courseModuleId, auth);
+
+      let studentSubmissions = {};
+
+      console.log(`Role: ${req.session.role}`);
+
+      //If we're a teacher in the course, get student submissions
+      if (req.session.role === LoginType.Teacher) {
+        const assignmentId = await db.getAssignmentIdFromCourseModule(pool, courseModuleId);
+        studentSubmissions = await db.getAllStudentSubmissionsForAssignment(pool, assignmentId);
+      }
+
+      console.log(`studentSubmissions: ${JSON.stringify(studentSubmissions)}`);
+
       return res.render("pages/course_module", {
         username: req.session.username,
         role: req.session.role,
@@ -367,7 +441,8 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
         courseTabId: courseTabId,
         courseId: courseId,
         courseTabs: courseTabsQuery.rows,
-        courseModuleId: courseModuleId
+        courseModuleId: courseModuleId,
+        studentSubmissions: studentSubmissions
       });
     }
 
