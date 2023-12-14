@@ -38,8 +38,6 @@
                 Drop files here or click to upload.
             </div>
         </form>
-
-        <button id="submit-btn" class="btn btn-primary">Submit</button>
     </div>
 <% } %>
 
@@ -71,80 +69,40 @@
 
 <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
 
-<!-- Only include this script if we're a student!!! -->
-<% if (role === "student") { %>
 <script>
-    const submitButton = document.getElementById("submit-btn");
-
-    async function uploadStudentFiles(fileIds) {
-        try {
-            const courseId = "<%= courseId %>";
-
-            const payload = JSON.stringify({
-                assignmentId: "<%= courseModule.assignment.id %>",
-                fileIds: fileIds,
+    // Initialize Dropzone on the form element
+    document.addEventListener("DOMContentLoaded", function() {
+        const dropzoneElement = document.querySelector("#myDropzone");
+        if (dropzoneElement) {
+            const myDropzone = new Dropzone(dropzoneElement, {
+                // your configuration
             });
 
-            //Correlates uploded file to student for course assignment
-            const res = await fetch(
-                "/upload/submission", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: payload
+            dropzoneElement.addEventListener("submit", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (myDropzone.files.length) {
+                    myDropzone.processQueue(); // Process all queued files
+                } else {
+                    alert("Please select files to upload.");
+                }
             });
-
-            if (!res.ok) {
-                throw new Error("Failed!");
-            }
-        } catch (error) {
-            showErrorModal(`Failed to create course module: ${error}`);
+        } else {
+            console.error("Dropzone element not found");
         }
-    }
+    });
 
-    try {
-        // Dropzone.js Configuration
-        Dropzone.options.myDropzone = {
-            paramName: "file",
-            maxFilesize: 20,
-            addRemoveLinks: true,
-            uploadMultiple: true,
-            parallelUploads: 100,
-            maxFiles: 100,
-            autoProcessQueue: false,
-            init: function() {
-                let fileIds = {};
 
-                submitButton.addEventListener("click", async () => {
-                    fileIds = {};
-
-                    if (this.getQueuedFiles().length > 0) {
-                        // If there are files in the queue, process them
-                        this.processQueue();
-                    } else {
-                        showErrorModal("Need to upload a file first!");
-                        return;
-                    }
-                });
-
-                this.on("success", function(file, response) {
-                    // Store response to get the file IDs
-                    fileIds = response;
-                });
-
-                this.on("queuecomplete", async function() {
-                    this.removeAllFiles();
-                    await uploadStudentFiles(fileIds);
-                    window.location.reload();
-                });
-            }
-        };
-    } catch (error) {
-        showErrorModal(`Failed to create course module: ${error}`);
-    }
+    document.querySelector("#myDropzone").addEventListener("submit", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (myDropzone.files.length) {
+            myDropzone.processQueue(); // Process all queued files
+        } else {
+            alert("Please select files to upload.");
+        }
+    });
 </script>
-<% } %>
 
 <style>
     .dropzone {
