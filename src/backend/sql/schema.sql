@@ -80,7 +80,9 @@ CREATE TABLE assignment_file_submissions (
     assignment_id INTEGER REFERENCES assignments(id) ON DELETE CASCADE,
     file_id INTEGER REFERENCES files(id) ON DELETE CASCADE,
     student_id INTEGER REFERENCES student(id) ON DELETE CASCADE,
-    PRIMARY KEY (assignment_id, file_id, student_id)
+    submission_group_id UUID,
+    submission_time TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (assignment_id, file_id, student_id, submission_group_id)
 );
 
 CREATE TABLE submissions (
