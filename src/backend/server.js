@@ -421,6 +421,7 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     //Render course module page
     if (courseModuleId) {
       const courseModule = await db.getCourseModule(pool, courseModuleId, auth);
+      const assignmentId = await db.getAssignmentIdFromCourseModule(pool, courseModuleId);
 
       let studentSubmissions = {};
 
@@ -428,11 +429,16 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
 
       //If we're a teacher in the course, get student submissions
       if (req.session.role === LoginType.Teacher) {
-        const assignmentId = await db.getAssignmentIdFromCourseModule(pool, courseModuleId);
         studentSubmissions = await db.getAllStudentSubmissionsForAssignment(pool, assignmentId);
       }
 
+      if (req.session.role === LoginType.Student) {
+        studentSubmissions = await db.getStudentSubmissionsForAssignment(pool, assignmentId, entityId);
+        console.log(JSON.stringify(studentSubmissions));
+      }
+
       console.log(`studentSubmissions: ${JSON.stringify(studentSubmissions)}`);
+      console.log("Cm: " + JSON.stringify(courseModule));
 
       return res.render("pages/course_module", {
         username: req.session.username,
