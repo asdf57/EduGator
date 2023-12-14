@@ -45,6 +45,21 @@
 </div>
 
 <script>
+    //Stop <a> tags from propagating clicks upwards
+    {
+        const downloadLinks = document.querySelectorAll('a');
+        downloadLinks.forEach(link => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault(); // Stop the default navigation
+                event.stopPropagation(); // Stop the event from bubbling up
+
+                // Manually trigger the download
+                const href = link.getAttribute('href');
+                window.location.href = href;
+            });
+        });
+    }
+
     //Since this is imported for each course module, we need to scope this logic to avoid redeclaration errors
     {
         const deleteFileButtons = document.querySelectorAll(".file-delete-btn");
