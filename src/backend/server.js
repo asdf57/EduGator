@@ -116,7 +116,11 @@ app.get("/home", async (req, res) => {
       });
   } catch (error) {
       console.error(error);
-      res.status(500).json("Error loading page");
+      return res.status(500).render("pages/error", {
+        error: `Error loading the home page: ${error}`,
+        username: req.session.username,
+        role: req.session.role
+      });
   }
 });
 
@@ -148,17 +152,11 @@ app.get("/create", async (req, res) => {
     }
   } catch (error) {
     console.log(`Error in create route: ${error}`);
-    return res.status(500).send(`Could not perform creation: ${error}`);
-  }
-});
-
-app.get("/home", async (req, res) => {
-  try {
-      const courses = await pool.query('SELECT * FROM courses');
-      return res.render("pages/home", { courses: courses.rows, username: req.session.username, role: req.session.role });
-  } catch (error) {
-      console.error(error);
-      return res.status(500).send("Error loading courses");
+    return res.status(500).render("pages/error", {
+      error: `Could not perform creation: ${error}`,
+      username: req.session.username,
+      role: req.session.role
+    });
   }
 });
 
@@ -236,7 +234,11 @@ app.get('/download/submissions/:assignmentId', async (req, res) => {
 
     // Ensure the assignmentId is a valid number
     if (!assignmentId || isNaN(parseInt(assignmentId))) {
-      return res.status(400).send('Invalid assignment ID');
+      return res.status(400).render("pages/error", {
+        error: "Invalid assignment ID",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     //Obtain assignment submissions
@@ -250,14 +252,22 @@ app.get('/download/submissions/:assignmentId', async (req, res) => {
 
     // Ensure there are submissions to process
     if (!submissions || Object.keys(submissions).length === 0) {
-      return res.status(404).send('No submissions found for this assignment');
+      return res.status(404).render("pages/error", {
+        error: "No submissions found for this assignment",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     const zipBuffer = await createZipFromFiles(submissions);
 
     // Check if ZIP creation was successful
     if (!zipBuffer) {
-      return res.status(500).send('Failed to create ZIP file');
+      return res.status(500).render("pages/error", {
+        error: "Failed to create ZIP file",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     res.set({
@@ -265,10 +275,18 @@ app.get('/download/submissions/:assignmentId', async (req, res) => {
       'Content-Disposition': `attachment; filename="submissions_${assignmentId}.zip"`
     });
 
-    res.send(zipBuffer);
+    return res.send(zipBuffer);
   } catch (error) {
     console.error('Failed to download submissions:', error);
-    res.status(500).send('Internal Server Error');
+    if (!res.headersSent) {
+      return res.status(500).render("pages/error", {
+        error: `Failed to generate ZIP data: ${error}`,
+        username: req.session.username,
+        role: req.session.role
+      });
+    } else {
+      console.error('Response already sent. Cannot render error page.');
+    }
   }
 });
 
@@ -282,31 +300,51 @@ app.get("/course/:courseId/:courseTab/:courseModuleId/:fileId", async (req, res)
 
     //General way to verify all course route parameters are non-empty & valid!
     if (! await db.isCourseRouteValid(pool, courseId, courseTabId, courseModuleId, fileId)) {
-      return res.status(500).json({error: "Invalid parameters specified!"});
+      return res.status(500).render("pages/error", {
+        error: "Invalid parameters specified!",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     //Check that user exists in database
     const userId = await db.getIdFromUsername(pool, req.session.username, req.session.role);
     if (userId === undefined) {
-      return res.status(500).json({error: "Failed to find user in database!"});
+      return res.status(500).render("pages/error", {
+        error: "Failed to find user in database!",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     //Check that user can access file
     if (! await db.isUserEnrolledInCourse(pool, userId, req.session.role, courseId)) {
-      return res.status(400).json({error: "User cannot access file!"});
+      return res.status(400).render("pages/error", {
+        error: "User cannot access file!",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     //Get file
     const fileData = await db.getFileData(pool, fileId);
     if (Object.keys(fileData).length === 0) {
-      return res.status(404).json({error: "File not found!"});
+      return res.status(404).render("pages/error", {
+        error: "File not found!",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     res.setHeader('Content-Disposition', 'attachment; filename="' + fileData.file_name + '"');
     res.setHeader('Content-Type', 'application/octet-stream');
     return res.end(fileData.file_data);
   } catch (error) {
-    return res.status(500).json({error: `Error while retrieving file: ${error}`});
+    return res.status(500).render("pages/error", {
+        error: `Error while retrieving file: ${error}`,
+        username: req.session.username,
+        role: req.session.role
+    });
   }
 });
 
@@ -331,7 +369,11 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     console.log(courseTabId);
 
     if (req.session.role === LoginType.Admin) {
-      return res.status(401).json({error: "Admin role cannot access courses!"});
+      return res.status(401).render("pages/error", {
+        error: "Admin role cannot access courses!",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     //Get the course information
@@ -345,7 +387,11 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     }
 
     if (courseIdQuery.length <= 0) {
-      return res.status(400).json({"error": "Course does not exist!"});
+      return res.status(400).render("pages/error", {
+        error: "Course does not exist!",
+        username: req.session.username,
+        role: req.session.role
+      });
     }
 
     const isCourseTabValid = await db.isCourseTabInValidCourse(pool, courseTabId, courseId);
@@ -374,17 +420,29 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
     //Check that the user exists!
     const enrollmentQuery = await pool.query(`SELECT * FROM ${req.session.role} WHERE id = $1`, [entityId]);
     if (!enrollmentQuery) {
-        return res.status(400).json({"error": "Invalid user!"});
+        return res.status(400).render("pages/error", {
+          error: "Invalid user!",
+          username: req.session.username,
+          role: req.session.role
+        });
     }
 
     if (enrollmentQuery.length <= 0) {
-        return res.status(400).json({"error": "User not enrolled in course!"});
+        return res.status(400).render("pages/error", {
+          error: "User not enrolled in course!",
+          username: req.session.username,
+          role: req.session.role
+        });
     }
 
     //Obtain all course tabs for the selected course to display in the course sidebar
     const courseTabsQuery = await pool.query(`SELECT * FROM course_tabs WHERE course_id = $1 ORDER BY order_id;`, [courseId]);
     if (!courseTabsQuery) {
-        return res.status(500).json({"error": "Error checking for course tabs!"});
+        return res.status(500).render("pages/error", {
+          error: "Error checking for course tabs!",
+          username: req.session.username,
+          role: req.session.role
+        });
     }
 
     //Get the course modules under the current selected course tab
@@ -400,19 +458,12 @@ app.get("/course/:courseId/:courseTab?/:courseModuleId?", async (req, res) => {
 
       let studentSubmissions = {};
 
-      console.log(`Role: ${req.session.role}`);
-
       //If we're a teacher in the course, get student submissions
       if (req.session.role === LoginType.Teacher) {
         studentSubmissions = await db.getAllStudentSubmissionsForAssignment(pool, assignmentId);
-      }
-
-      if (req.session.role === LoginType.Student) {
+      } else if (req.session.role === LoginType.Student) {
         studentSubmissions = await db.getStudentSubmissionsForAssignment(pool, assignmentId, entityId);
-        console.log(JSON.stringify(studentSubmissions));
       }
-
-      console.log(`studentSubmissions: ${JSON.stringify(studentSubmissions)}`);
 
       return res.render("pages/course_module", {
         username: req.session.username,
