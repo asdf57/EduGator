@@ -100,6 +100,7 @@
   //Event listener for moving content areas around
   document.addEventListener('DOMContentLoaded', () => {
     const modules = document.getElementById('content-items');
+    const role = '<%= role %>';
     if (role === "teacher") {
       Sortable.create(modules, {
         animation: 150,
