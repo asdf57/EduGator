@@ -100,31 +100,33 @@
   //Event listener for moving content areas around
   document.addEventListener('DOMContentLoaded', () => {
     const modules = document.getElementById('content-items');
-    Sortable.create(modules, {
-      animation: 150,
-      ghostClass: 'bg-blue-100',
-      dragClass: "opacity-100",
-      onEnd: async (event) => {
-        let itemOrder = {};
-        const items = modules.getElementsByClassName("module-item");
+    if (role === "teacher") {
+      Sortable.create(modules, {
+        animation: 150,
+        ghostClass: 'bg-blue-100',
+        dragClass: "opacity-100",
+        onEnd: async (event) => {
+          let itemOrder = {};
+          const items = modules.getElementsByClassName("module-item");
 
-        for (var i = 0; i < items.length; i++) {
-          const databaseId = items[i].getAttribute("coursemoduleid");
-          itemOrder[databaseId] = i;
-        }
+          for (var i = 0; i < items.length; i++) {
+            const databaseId = items[i].getAttribute("coursemoduleid");
+            itemOrder[databaseId] = i;
+          }
 
-        const payload = await fetch("/update/coursemodule/order", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            "order": itemOrder,
-            "courseTabId": "<%= courseTabId %>"
-          })
-        });
-      },
-    });
+          const payload = await fetch("/update/coursemodule/order", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              "order": itemOrder,
+              "courseTabId": "<%= courseTabId %>"
+            })
+          });
+        },
+      });
+    }
 
     // Course module update buttons
     const updateButtons = document.querySelectorAll("#course-module-update");
