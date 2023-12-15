@@ -25,10 +25,12 @@
         <% } %>
     </ul>
 
-    <!-- Adjusted Add button at the bottom -->
-    <div class="px-4 pt-2 pb-2">
-        <button id="course-tab-add-btn" class="btn btn-primary w-full">Add</button>
-    </div>
+    <% if (role === "teacher") { %>
+        <!-- Adjusted Add button at the bottom -->
+        <div class="px-4 pt-2 pb-2">
+            <button id="course-tab-add-btn" class="btn btn-primary w-full">Add</button>
+        </div>
+    <% } %>
 
     <% if (role === "teacher") { %>
         <%- include('../components/coursetab_modal') %>
@@ -43,15 +45,17 @@
     const updateButtons = document.querySelectorAll(".course-tab-update");
     const courseTabAddButton = document.getElementById("course-tab-add-btn");
 
-    courseTabAddButton.addEventListener("click", async function(event) {
-        event.stopPropagation();
-        try {
-            setupCourseTabModal({ courseId: "<%= courseId %>", courseTabName: "", courseTabId: "", action: 'add' });
-        } catch(error) {
-            console.log(error);
-            showErrorModal("Could not create course tab due to error: " + error.message);
-        }
-    });
+    if (courseTabAddButton) {
+        courseTabAddButton.addEventListener("click", async function(event) {
+            event.stopPropagation();
+            try {
+                setupCourseTabModal({ courseId: "<%= courseId %>", courseTabName: "", courseTabId: "", action: 'add' });
+            } catch(error) {
+                console.log(error);
+                showErrorModal("Could not create course tab due to error: " + error.message);
+            }
+        });
+    }
 
     function navigateToProperUrl(courseTabId) {
         //You can delete a course tab while IN a course tab or while on the course module page
