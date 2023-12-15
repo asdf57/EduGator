@@ -11,9 +11,9 @@
     <%- include( '../components/header' ) %>
     <%- include( '../components/sidebar' ) %>
 
-    <main class="h-screen flex justify-center items-center bg-gray-100 dark:bg-gray-800">
-        <div class="container mx-auto p-8">
-            <div id="signupForm" class="card p-5">
+    <main class="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-800">
+        <div class="w-full max-w-lg m-2 p-8 shadow-md mx-auto rounded-md bg-gray-100 dark:bg-gray-950">
+            <form id="signupForm" class="card p-5">
                 <div class="form-control mb-4">
                     <label class="label">
                         <span class="label-text">Select Role</span>
@@ -89,7 +89,6 @@
                 <button id="signup" type="submit" class="btn btn-primary w-full">Sign up</button>
                 <div id="result" class="w-full text-center"></div>
             </form>
-
         </div>
     </main>
 </body>
